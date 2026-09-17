@@ -76,7 +76,12 @@ type AttemptResult struct {
 	AttemptNumber   int              `json:"attemptNumber"`
 	QuestionResults []QuestionResult `json:"questionResults"`
 	// Progression info
-	UnitComplete       bool   `json:"unitComplete"`
-	UnlockRequestCreated bool `json:"unlockRequestCreated"`
-	PersonalBest       bool   `json:"personalBest"`
+	UnitComplete         bool   `json:"unitComplete"`
+	UnlockRequestCreated bool   `json:"unlockRequestCreated"`
+	PersonalBest         bool   `json:"personalBest"`
+	// Gamification results — set by backend, never trusted from client
+	RankUpTitle  string   `json:"rankUpTitle"`  // non-empty when student just ranked up
+	BadgesEarned []string `json:"badgesEarned"` // badge IDs newly awarded this submission
+	MaxCombo     int      `json:"maxCombo"`     // highest consecutive correct answers this attempt
 }
+

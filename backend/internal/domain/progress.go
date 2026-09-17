@@ -29,7 +29,9 @@ type StudentProgress struct {
 	CompletedChapters []string  `firestore:"completedChapters" json:"completedChapters"`
 	CompletedUnits    []string  `firestore:"completedUnits" json:"completedUnits"`
 	Coins             int       `firestore:"coins" json:"coins"`
-	Badges            []string  `firestore:"badges" json:"badges"`
-	BotTrophies       []string  `firestore:"botTrophies" json:"botTrophies"`
-	UpdatedAt         time.Time `firestore:"updatedAt" json:"updatedAt"`
+	Badges                []string  `firestore:"badges" json:"badges"`
+	BotTrophies           []string  `firestore:"botTrophies" json:"botTrophies"`
+	QuizzesCompletedToday int       `firestore:"quizzesCompletedToday" json:"quizzesCompletedToday"`
+	LastQuizDate          string    `firestore:"lastQuizDate" json:"lastQuizDate"` // UTC Date string: YYYY-MM-DD
+	UpdatedAt             time.Time `firestore:"updatedAt" json:"updatedAt"`
 }

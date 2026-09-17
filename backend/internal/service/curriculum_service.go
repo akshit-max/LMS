@@ -153,3 +153,51 @@ func (s *CurriculumService) GetChapterDetail(ctx context.Context, userID, chapte
 func (s *CurriculumService) GetStudentProgress(ctx context.Context, userID string) (*domain.StudentProgress, error) {
 	return s.progressRepo.GetOrCreate(ctx, userID)
 }
+
+// InitializeChaptersForStudent sets up chapterStatus records for a newly approved student.
+// It initializes Unit 1 chapter 1 as "available" and the rest as "locked".
+// This is called once when an admin approves a student account.
+func (s *CurriculumService) InitializeChaptersForStudent(ctx context.Context, userID string) error {
+	// Get all units, start with unit order=1
+	units, err := s.unitRepo.GetAll(ctx)
+	if err != nil {
+		return fmt.Errorf("get units: %w", err)
+	}
+
+	// Find unit with order = 1
+	var firstUnit *domain.Unit
+	for _, u := range units {
+		if u.Order == 1 {
+			firstUnit = u
+			break
+		}
+	}
+	if firstUnit == nil && len(units) > 0 {
+		firstUnit = units[0] // fallback to first available unit
+	}
+	if firstUnit == nil {
+		return nil // no units seeded yet, skip silently
+	}
+
+	chapters, err := s.chapterRepo.GetByUnit(ctx, firstUnit.ID)
+	if err != nil {
+		return fmt.Errorf("get chapters: %w", err)
+	}
+	if len(chapters) == 0 {
+		return nil
+	}
+
+	return s.chapterStatusRepo.InitializeForUser(ctx, userID, chapters)
+}
+
+// GetChaptersRaw returns chapters for a unit without any student-status enrichment.
+// Used by admin endpoints to display the curriculum structure without personalisation.
+func (s *CurriculumService) GetChaptersRaw(ctx context.Context, unitID string) ([]*domain.Chapter, error) {
+	return s.chapterRepo.GetByUnit(ctx, unitID)
+}
+
+// GetUnitsRaw returns all active units without student-status enrichment.
+// Used by admin endpoints to display the curriculum structure without personalisation.
+func (s *CurriculumService) GetUnitsRaw(ctx context.Context) ([]*domain.Unit, error) {
+	return s.unitRepo.GetAll(ctx)
+}

@@ -9,10 +9,3 @@ func NewGamificationService() *GamificationService {
 	return &GamificationService{}
 }
 
-// AdminService handles platform-wide admin operations.
-// Full implementation starts in Milestone 2 (admin dashboard) and 4 (unlock approvals).
-type AdminService struct{}
-
-func NewAdminService() *AdminService {
-	return &AdminService{}
-}

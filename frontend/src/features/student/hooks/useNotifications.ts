@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
+import { useAuthStore } from '@/store/authStore'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -33,24 +34,28 @@ export interface AppNotification {
 // ─── Student hooks ────────────────────────────────────────────────────────────
 
 export function useNotifications() {
+  const uid = useAuthStore(s => s.firebaseUser?.uid)
   return useQuery({
-    queryKey: ['notifications'],
+    queryKey: ['notifications', uid],
     queryFn: async () => {
       const res = await api.get<{ notifications: AppNotification[] }>('/notifications')
       return res.data.notifications
     },
     refetchInterval: 30_000, // poll every 30s for new notifications
+    enabled: !!uid,
   })
 }
 
 export function useUnreadCount() {
+  const uid = useAuthStore(s => s.firebaseUser?.uid)
   return useQuery({
-    queryKey: ['notifications', 'unread'],
+    queryKey: ['notifications', 'unread', uid],
     queryFn: async () => {
       const res = await api.get<{ unreadCount: number }>('/notifications/unread-count')
       return res.data.unreadCount
     },
     refetchInterval: 30_000,
+    enabled: !!uid,
   })
 }
 
@@ -65,12 +70,14 @@ export function useMarkNotificationRead() {
 }
 
 export function useMyUnlockRequests() {
+  const uid = useAuthStore(s => s.firebaseUser?.uid)
   return useQuery({
-    queryKey: ['me', 'unlock-requests'],
+    queryKey: ['me', 'unlock-requests', uid],
     queryFn: async () => {
       const res = await api.get<{ requests: UnlockRequest[] }>('/me/unlock-requests')
       return res.data.requests
     },
+    enabled: !!uid,
   })
 }
 

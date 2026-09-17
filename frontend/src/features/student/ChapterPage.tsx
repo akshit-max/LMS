@@ -112,22 +112,20 @@ export default function ChapterPage() {
           <ResourceCard
             icon={Video}
             title="Video Lesson"
-            subtitle={hasVideo ? 'Watch the lesson' : 'Coming soon'}
-            available={hasVideo && !isLocked}
+            subtitle="Watch the lesson"
+            available={!isLocked}
             color="accent"
-            href={chapter.lessonVideoUrl}
-            external
+            href={`/chapters/${chapter.id}/video`}
           />
 
           {/* PDF notes */}
           <ResourceCard
             icon={FileText}
             title="Grammar Notes"
-            subtitle={hasPDF ? 'Download PDF' : 'Coming soon'}
-            available={hasPDF && !isLocked}
+            subtitle="Read notes"
+            available={!isLocked}
             color="primary"
-            href={chapter.pdfUrl}
-            external
+            href={`/chapters/${chapter.id}/grammar`}
           />
 
           {/* Reading (placeholder — will be rich content in M5) */}
@@ -135,8 +133,9 @@ export default function ChapterPage() {
             icon={BookOpen}
             title="Interactive Lesson"
             subtitle="Coming soon in next update"
-            available={false}
+            available={!isLocked}
             color="warning"
+            href={`/chapters/${chapter.id}/interactive`}
           />
         </motion.div>
 
@@ -179,6 +178,17 @@ export default function ChapterPage() {
               You've passed this chapter ✓ · Retake to improve your stars
             </p>
           )}
+
+          {/* Practice Arena — available for any non-locked chapter */}
+          {(isAvailable || isCompleted) && chapter.quizId && (
+            <div className="mt-3">
+              <Link to={`/practice/${chapter.quizId}`}>
+                <button className="w-full py-3 rounded-2xl text-sm font-medium flex items-center justify-center gap-2 border border-zinc-700/60 bg-zinc-800/40 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-all">
+                  🎯 Practice (no ranking, no XP)
+                </button>
+              </Link>
+            </div>
+          )}
         </motion.div>
 
       </main>
@@ -196,14 +206,14 @@ const rColors: Record<ResourceColor, string> = {
 }
 
 function ResourceCard({
-  icon: Icon, title, subtitle, available, color, href, external,
+  icon: Icon, title, subtitle, available, color, href,
 }: {
   icon: any, title: string, subtitle: string, available: boolean,
-  color: ResourceColor, href?: string, external?: boolean,
+  color: ResourceColor, href?: string,
 }) {
   const inner = (
     <div className={`card-game p-3.5 flex items-center gap-3 transition-all duration-150
-      ${available ? 'hover:border-zinc-600 cursor-pointer' : 'opacity-40 cursor-not-allowed'}`}
+      ${available ? 'hover:border-zinc-600 cursor-pointer hover:bg-zinc-800/30' : 'opacity-40 cursor-not-allowed'}`}
     >
       <div className={`p-2.5 rounded-xl shrink-0 ${available ? rColors[color] : 'bg-zinc-800 text-zinc-600'}`}>
         <Icon size={18} />
@@ -219,5 +229,5 @@ function ResourceCard({
   )
 
   if (!available || !href) return inner
-  return <a href={href} target={external ? '_blank' : '_self'} rel="noopener noreferrer">{inner}</a>
+  return <Link to={href}>{inner}</Link>
 }

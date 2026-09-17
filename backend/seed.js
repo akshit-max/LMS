@@ -9,13 +9,13 @@
  *   Set GOOGLE_APPLICATION_CREDENTIALS or use the serviceAccountKey path below.
  */
 
-const admin = require('firebase-admin')
+const { initializeApp, cert } = require('firebase-admin/app')
+const { getFirestore } = require('firebase-admin/firestore')
 
 // ─────────────────────────────────────────────
 // CONFIG — update with your Firebase project
 // ─────────────────────────────────────────────
 const SERVICE_ACCOUNT_PATH = './firebase-service-account.json'
-const PROJECT_ID = process.env.FIREBASE_PROJECT_ID || 'your-firebase-project-id'
 
 let serviceAccount
 try {
@@ -26,26 +26,46 @@ try {
   process.exit(1)
 }
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  projectId: PROJECT_ID,
+initializeApp({
+  credential: cert(serviceAccount),
+  projectId: serviceAccount.project_id,
 })
 
-const db = admin.firestore()
+const db = getFirestore()
 
 // ─────────────────────────────────────────────
 // SEED DATA
 // ─────────────────────────────────────────────
 
-const unit1 = {
-  id: 'unit-1',
-  title: 'The Simple Present Tense',
-  description: 'Learn how to form and use simple present tense sentences in English.',
-  order: 1,
-  chapterCount: 3,
-  isActive: true,
-  createdAt: new Date(),
-}
+const units = [
+  {
+    id: 'unit-1',
+    title: 'The Simple Present Tense',
+    description: 'Learn how to form and use simple present tense sentences in English.',
+    order: 1,
+    chapterCount: 3,
+    isActive: true,
+    createdAt: new Date(),
+  },
+  {
+    id: 'unit-2',
+    title: 'The Past Tense',
+    description: 'Learn how to form and use simple past tense sentences in English.',
+    order: 2,
+    chapterCount: 2,
+    isActive: true,
+    createdAt: new Date(),
+  },
+  {
+    id: 'unit-3',
+    title: 'The Future Tense',
+    description: 'Learn how to form and use simple future tense sentences in English.',
+    order: 3,
+    chapterCount: 2,
+    isActive: true,
+    createdAt: new Date(),
+  }
+]
 
 const chapters = [
   {
@@ -78,6 +98,50 @@ const chapters = [
     lessonVideoUrl: '',
     pdfUrl: '',
     quizId: 'quiz-1-3',
+    isActive: true,
+    createdAt: new Date(),
+  },
+  {
+    id: 'ch-2-1',
+    unitId: 'unit-2',
+    title: 'Introduction to Past Tense',
+    order: 1,
+    lessonVideoUrl: '',
+    pdfUrl: '',
+    quizId: 'quiz-2-1',
+    isActive: true,
+    createdAt: new Date(),
+  },
+  {
+    id: 'ch-2-2',
+    unitId: 'unit-2',
+    title: 'Past Tense: Irregular Verbs',
+    order: 2,
+    lessonVideoUrl: '',
+    pdfUrl: '',
+    quizId: 'quiz-2-2',
+    isActive: true,
+    createdAt: new Date(),
+  },
+  {
+    id: 'ch-3-1',
+    unitId: 'unit-3',
+    title: 'Introduction to Future Tense (Will)',
+    order: 1,
+    lessonVideoUrl: '',
+    pdfUrl: '',
+    quizId: 'quiz-3-1',
+    isActive: true,
+    createdAt: new Date(),
+  },
+  {
+    id: 'ch-3-2',
+    unitId: 'unit-3',
+    title: 'Future Tense (Going To)',
+    order: 2,
+    lessonVideoUrl: '',
+    pdfUrl: '',
+    quizId: 'quiz-3-2',
     isActive: true,
     createdAt: new Date(),
   },
@@ -114,6 +178,54 @@ const quizzes = [
     unitId: 'unit-1',
     title: 'Questions and Short Answers Quiz',
     questionIds: ['q-1-3-1', 'q-1-3-2', 'q-1-3-3', 'q-1-3-4', 'q-1-3-5'],
+    passingScore: 90,
+    tier: 'admin',
+    createdBy: 'seed',
+    isActive: true,
+    createdAt: new Date(),
+  },
+  {
+    id: 'quiz-2-1',
+    chapterId: 'ch-2-1',
+    unitId: 'unit-2',
+    title: 'Introduction to Past Tense Quiz',
+    questionIds: ['q-2-1-1'],
+    passingScore: 90,
+    tier: 'admin',
+    createdBy: 'seed',
+    isActive: true,
+    createdAt: new Date(),
+  },
+  {
+    id: 'quiz-2-2',
+    chapterId: 'ch-2-2',
+    unitId: 'unit-2',
+    title: 'Past Tense: Irregular Verbs Quiz',
+    questionIds: ['q-2-2-1'],
+    passingScore: 90,
+    tier: 'admin',
+    createdBy: 'seed',
+    isActive: true,
+    createdAt: new Date(),
+  },
+  {
+    id: 'quiz-3-1',
+    chapterId: 'ch-3-1',
+    unitId: 'unit-3',
+    title: 'Introduction to Future Tense (Will) Quiz',
+    questionIds: ['q-3-1-1'],
+    passingScore: 90,
+    tier: 'admin',
+    createdBy: 'seed',
+    isActive: true,
+    createdAt: new Date(),
+  },
+  {
+    id: 'quiz-3-2',
+    chapterId: 'ch-3-2',
+    unitId: 'unit-3',
+    title: 'Future Tense (Going To) Quiz',
+    questionIds: ['q-3-2-1'],
     passingScore: 90,
     tier: 'admin',
     createdBy: 'seed',
@@ -264,6 +376,42 @@ const questions = [
     difficulty: 'medium', grammarTopic: 'question-form',
     tier: 'admin', createdBy: 'seed', approvalStatus: 'approved', usageCount: 0, createdAt: new Date(),
   },
+  {
+    id: 'q-2-1-1', quizId: 'quiz-2-1', chapterId: 'ch-2-1', unitId: 'unit-2',
+    type: 'mcq', text: 'Yesterday, I _____ to the park.',
+    options: ['go', 'went', 'goes', 'going'],
+    correctAnswer: 'went',
+    explanation: 'The past tense of "go" is "went".',
+    difficulty: 'easy', grammarTopic: 'past-simple',
+    tier: 'admin', createdBy: 'seed', approvalStatus: 'approved', usageCount: 0, createdAt: new Date(),
+  },
+  {
+    id: 'q-2-2-1', quizId: 'quiz-2-2', chapterId: 'ch-2-2', unitId: 'unit-2',
+    type: 'mcq', text: 'I _____ a great movie yesterday.',
+    options: ['see', 'saw', 'seen', 'seeing'],
+    correctAnswer: 'saw',
+    explanation: 'The past tense of "see" is "saw".',
+    difficulty: 'easy', grammarTopic: 'past-simple',
+    tier: 'admin', createdBy: 'seed', approvalStatus: 'approved', usageCount: 0, createdAt: new Date(),
+  },
+  {
+    id: 'q-3-1-1', quizId: 'quiz-3-1', chapterId: 'ch-3-1', unitId: 'unit-3',
+    type: 'mcq', text: 'They _____ arrive tomorrow.',
+    options: ['will', 'are', 'do', 'have'],
+    correctAnswer: 'will',
+    explanation: 'We use "will" for future actions.',
+    difficulty: 'easy', grammarTopic: 'future-simple',
+    tier: 'admin', createdBy: 'seed', approvalStatus: 'approved', usageCount: 0, createdAt: new Date(),
+  },
+  {
+    id: 'q-3-2-1', quizId: 'quiz-3-2', chapterId: 'ch-3-2', unitId: 'unit-3',
+    type: 'mcq', text: 'She is _____ travel next week.',
+    options: ['going to', 'will', 'goes', 'going'],
+    correctAnswer: 'going to',
+    explanation: 'We use "is going to" for planned future actions.',
+    difficulty: 'easy', grammarTopic: 'future-going-to',
+    tier: 'admin', createdBy: 'seed', approvalStatus: 'approved', usageCount: 0, createdAt: new Date(),
+  }
 ]
 
 // ─────────────────────────────────────────────
@@ -294,9 +442,11 @@ async function seed() {
 
   const batch = db.batch()
 
-  // Unit
-  batch.set(db.collection('units').doc(unit1.id), unit1)
-  console.log(`✅ Unit: ${unit1.title}`)
+  // Units
+  for (const u of units) {
+    batch.set(db.collection('units').doc(u.id), u)
+    console.log(`✅ Unit: ${u.title}`)
+  }
 
   // Chapters
   for (const ch of chapters) {

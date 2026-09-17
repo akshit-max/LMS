@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import type { StudentProgress } from '@/types'
+import { useAuthStore } from '@/store/authStore'
 
 // ─── Types matching backend service responses ───────────────────────────────
 
@@ -31,43 +32,49 @@ export interface ChapterWithStatus {
 // ─── Query hooks ────────────────────────────────────────────────────────────
 
 export function useUnits() {
+  const uid = useAuthStore(s => s.firebaseUser?.uid)
   return useQuery({
-    queryKey: ['units'],
+    queryKey: ['units', uid],
     queryFn: async () => {
       const res = await api.get<{ units: UnitWithStatus[] }>('/units')
       return res.data.units
     },
+    enabled: !!uid,
   })
 }
 
 export function useChapters(unitId: string) {
+  const uid = useAuthStore(s => s.firebaseUser?.uid)
   return useQuery({
-    queryKey: ['chapters', unitId],
+    queryKey: ['chapters', unitId, uid],
     queryFn: async () => {
       const res = await api.get<{ chapters: ChapterWithStatus[] }>(`/units/${unitId}/chapters`)
       return res.data.chapters
     },
-    enabled: !!unitId,
+    enabled: !!unitId && !!uid,
   })
 }
 
 export function useChapter(chapterId: string) {
+  const uid = useAuthStore(s => s.firebaseUser?.uid)
   return useQuery({
-    queryKey: ['chapter', chapterId],
+    queryKey: ['chapter', chapterId, uid],
     queryFn: async () => {
       const res = await api.get<ChapterWithStatus>(`/chapters/${chapterId}`)
       return res.data
     },
-    enabled: !!chapterId,
+    enabled: !!chapterId && !!uid,
   })
 }
 
 export function useProgress() {
+  const uid = useAuthStore(s => s.firebaseUser?.uid)
   return useQuery({
-    queryKey: ['progress'],
+    queryKey: ['progress', uid],
     queryFn: async () => {
       const res = await api.get<StudentProgress>('/progress')
       return res.data
     },
+    enabled: !!uid,
   })
 }

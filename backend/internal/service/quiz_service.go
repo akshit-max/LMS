@@ -27,6 +27,8 @@ type QuizService struct {
 	chapterStatusRepo  *repository.ChapterStatusRepository
 	progressRepo       *repository.ProgressRepository
 	progressionService *ProgressionService
+	badgeService       *BadgeService
+	notifRepo          *repository.NotificationRepository
 }
 
 func NewQuizService(
@@ -35,6 +37,8 @@ func NewQuizService(
 	chapterStatusRepo *repository.ChapterStatusRepository,
 	progressRepo *repository.ProgressRepository,
 	progressionService *ProgressionService,
+	badgeService *BadgeService,
+	notifRepo *repository.NotificationRepository,
 ) *QuizService {
 	return &QuizService{
 		quizRepo:           quizRepo,
@@ -42,8 +46,11 @@ func NewQuizService(
 		chapterStatusRepo:  chapterStatusRepo,
 		progressRepo:       progressRepo,
 		progressionService: progressionService,
+		badgeService:       badgeService,
+		notifRepo:          notifRepo,
 	}
 }
+
 
 // ─── Start ────────────────────────────────────────────────────────────────────
 
@@ -153,9 +160,14 @@ func (s *QuizService) SubmitAttempt(
 	questionResults := make([]domain.QuestionResult, 0, len(attempt.QuestionOrder))
 	correctCount := 0
 
+	// Combo tracking: consecutive correct answers in question order
+	maxCombo := 0
+	currentCombo := 0
+
 	for _, qid := range attempt.QuestionOrder {
 		q, err := s.quizRepo.GetQuestionByID(ctx, qid)
 		if err != nil || q == nil {
+			currentCombo = 0 // treat missing question as break
 			continue
 		}
 
@@ -171,6 +183,12 @@ func (s *QuizService) SubmitAttempt(
 		isCorrect := gradeAnswer(q, selectedAnswer)
 		if isCorrect {
 			correctCount++
+			currentCombo++
+			if currentCombo > maxCombo {
+				maxCombo = currentCombo
+			}
+		} else {
+			currentCombo = 0
 		}
 
 		storedAnswers = append(storedAnswers, domain.StoredAnswer{
@@ -220,21 +238,70 @@ func (s *QuizService) SubmitAttempt(
 		return nil, fmt.Errorf("failed to complete attempt: %w", err)
 	}
 
-	// 7. Update progress if passed or personal best (XP always awarded on first completion)
+	// 7. Update progress if personal best — also detect rank-up
+	rankUpTitle := ""
 	if personalBest {
-		s.updateProgress(ctx, userID, xp, stars)
+		rankUpTitle = s.updateProgress(ctx, userID, xp, stars)
 	}
+
+	unitComplete := false
+	unlockRequestCreated := false
 
 	// 8. Update chapterStatus if passed
 	if passed {
 		s.updateChapterStatus(ctx, userID, attempt.ChapterID, attempt.UnitID, score, stars)
 
-		// 9. Evaluate unit completion — check if ALL quizzes in this unit are ≥90%.
-		// Only creates an unlock request if ALL are mastered. A single pass never triggers this.
+		// Always record this chapter as completed in the progress aggregate.
+		// Uses Firestore ArrayUnion — idempotent, no duplicates.
+		_ = s.progressRepo.AppendCompletedChapter(ctx, userID, attempt.ChapterID)
+
 		if s.progressionService != nil && attempt.UnitID != "" {
-			unitComplete, _ := s.progressionService.EvaluateUnitCompletion(ctx, userID, attempt.UnitID)
-			result.UnitComplete = unitComplete
-			result.UnlockRequestCreated = unitComplete
+			// Step A: Unlock the next chapter within the same unit.
+			// This is what lets the student continue Ch1 → Ch2 → Ch3.
+			// Errors here are non-fatal — they are logged but don't fail the submission.
+			if err := s.progressionService.UnlockNextChapter(ctx, userID, attempt.ChapterID, attempt.UnitID); err != nil {
+				// Non-fatal: log but proceed. Student still gets their result.
+				_ = err
+			}
+
+			// Step B: Check if ALL chapters in this unit are now completed at ≥90%.
+			// Only creates one Admin unlock request when the whole unit is mastered.
+			// This will return false for Ch1/Ch2 completions (remaining chapters not done yet).
+			unitComplete, _ = s.progressionService.EvaluateUnitCompletion(ctx, userID, attempt.UnitID)
+			unlockRequestCreated = unitComplete
+			if unitComplete {
+				// Record the unit as completed in the progress aggregate.
+				// Uses Firestore ArrayUnion — idempotent, no duplicates.
+				_ = s.progressRepo.AppendCompletedUnit(ctx, userID, attempt.UnitID)
+			}
+		}
+	}
+
+	// 9. Update daily mission (counts any submitted attempt, regardless of pass/fail)
+	s.updateDailyMission(ctx, userID)
+
+	// 10. Evaluate and award badges
+	var badgesEarned []string
+	if s.badgeService != nil {
+		progress, _ := s.progressRepo.GetOrCreate(ctx, userID)
+		currentStreak := 0
+		if progress != nil {
+			currentStreak = progress.CurrentStreak
+		}
+		badgesEarned = s.badgeService.EvaluateAndAward(ctx, BadgeEvent{
+			UserID:         userID,
+			Score:          score,
+			Stars:          stars,
+			Passed:         passed,
+			MaxCombo:       maxCombo,
+			IsFirstAttempt: attempt.AttemptNumber == 1, // first attempt on this quiz
+			UnitComplete:   unitComplete,
+			CurrentStreak:  currentStreak,
+			PersonalBest:   personalBest,
+		})
+		// Award rank-up badge if applicable
+		if rankUpTitle != "" {
+			s.badgeService.AwardRankBadge(ctx, userID, rankUpTitle)
 		}
 	}
 
@@ -247,8 +314,11 @@ func (s *QuizService) SubmitAttempt(
 		AttemptNumber:        attempt.AttemptNumber,
 		QuestionResults:      questionResults,
 		PersonalBest:         personalBest,
-		UnitComplete:         false, // evaluated in M4 ProgressionService
-		UnlockRequestCreated: false, // evaluated in M4 ProgressionService
+		UnitComplete:         unitComplete,
+		UnlockRequestCreated: unlockRequestCreated,
+		RankUpTitle:          rankUpTitle,
+		BadgesEarned:         badgesEarned,
+		MaxCombo:             maxCombo,
 	}, nil
 }
 
@@ -300,15 +370,32 @@ func buildResultFromAttempt(attempt *domain.Attempt) *domain.AttemptResult {
 	}
 }
 
-func (s *QuizService) updateProgress(ctx context.Context, userID string, xp, stars int) {
+// updateProgress applies XP/stars/streak and returns the new rank title if a rank-up occurred.
+// The returned string is empty if the rank did not change.
+func (s *QuizService) updateProgress(ctx context.Context, userID string, xp, stars int) string {
 	progress, err := s.progressRepo.GetOrCreate(ctx, userID)
 	if err != nil {
-		return
+		return ""
 	}
+	oldRank := progress.RankTitle
 	progress.TotalXP += xp
 	progress.TotalStars += stars
 	progress.RankTitle = calculateRank(progress.TotalXP)
 	progress.StructureCount = progress.TotalXP / 10 // rough proxy
+
+	// Normalize nil slices — old progress docs from manual seeding may have null arrays
+	if progress.CompletedChapters == nil {
+		progress.CompletedChapters = []string{}
+	}
+	if progress.CompletedUnits == nil {
+		progress.CompletedUnits = []string{}
+	}
+	if progress.Badges == nil {
+		progress.Badges = []string{}
+	}
+	if progress.BotTrophies == nil {
+		progress.BotTrophies = []string{}
+	}
 
 	// Update streak
 	today := time.Now().Format("2006-01-02")
@@ -326,6 +413,19 @@ func (s *QuizService) updateProgress(ctx context.Context, userID string, xp, sta
 	}
 
 	s.progressRepo.Set(ctx, progress)
+
+	// Detect rank-up
+	if progress.RankTitle != oldRank && oldRank != "" {
+		// Send rank-up notification
+		_ = s.notifRepo.Create(ctx, &domain.Notification{
+			UserID: userID,
+			Type:   domain.NotifTypeRankUp,
+			Title:  fmt.Sprintf("🎉 You ranked up to %s!", progress.RankTitle),
+			Body:   fmt.Sprintf("You've earned enough XP to reach %s. Keep going!", progress.RankTitle),
+		})
+		return progress.RankTitle
+	}
+	return ""
 }
 
 func (s *QuizService) updateChapterStatus(ctx context.Context, userID, chapterID, unitID string, score, stars int) {
@@ -376,3 +476,25 @@ func (s *QuizService) GetAttempt(ctx context.Context, userID, attemptID string) 
 	}
 	return buildResultFromAttempt(attempt), nil
 }
+
+func (s *QuizService) updateDailyMission(ctx context.Context, userID string) {
+	todayUTC := time.Now().UTC().Format("2006-01-02")
+
+	// Use a targeted update to avoid a full read-modify-write cycle.
+	// Strategy: fetch only the date + count, update only those fields.
+	progress, err := s.progressRepo.GetOrCreate(ctx, userID)
+	if err != nil {
+		return
+	}
+
+	var newCount int
+	if progress.LastQuizDate == todayUTC {
+		newCount = progress.QuizzesCompletedToday + 1
+	} else {
+		newCount = 1
+	}
+
+	// Update only the daily mission fields — MergeAll ensures other fields are untouched.
+	s.progressRepo.SetDailyMission(ctx, userID, todayUTC, newCount)
+}
+

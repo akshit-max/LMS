@@ -3,6 +3,7 @@ import { onAuthStateChanged } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import api from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
+import { queryClient } from '@/lib/queryClient'
 
 /**
  * AuthProvider listens to Firebase auth state changes and syncs the user
@@ -25,8 +26,6 @@ export function useAuthProvider() {
           const response = await api.post('/auth/profile', {
             email: firebaseUser.email,
             displayName: firebaseUser.displayName ?? firebaseUser.email,
-            // studentType defaults to 'independent' — school students will have been
-            // pre-provisioned by their teacher/admin and this path won't normally be reached.
             studentType: 'independent',
           })
 
@@ -38,7 +37,10 @@ export function useAuthProvider() {
           setProfileLoaded(true)
         }
       } else {
+        // User signed out — clear state; ProtectedRoute will redirect to /login
         reset()
+        // Clear TanStack query cache completely so no user data leaks to next session
+        queryClient.clear()
         setProfileLoaded(true)
       }
 

@@ -1,10 +1,41 @@
+import { useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Clock, LogOut } from 'lucide-react'
+import { Clock, LogOut, RefreshCw } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { auth } from '@/lib/firebase'
 import { useAuthStore } from '@/store/authStore'
+import api from '@/lib/api'
 
 export default function PendingApprovalPage() {
-  const { profile } = useAuthStore()
+  const { profile, setProfile } = useAuthStore()
+  const navigate = useNavigate()
+
+  // Poll backend every 10s to check if admin has approved the account.
+  // When the backend returns accountStatus === 'active', redirect to dashboard.
+  useEffect(() => {
+    const check = async () => {
+      try {
+        const res = await api.get('/auth/me')
+        const updated = res.data
+        if (updated.accountStatus === 'active') {
+          setProfile(updated)
+          navigate('/dashboard', { replace: true })
+        }
+      } catch {
+        // ignore errors — just keep polling
+      }
+    }
+
+    // Check immediately in case approval already happened
+    check()
+    const interval = setInterval(check, 10_000)
+    return () => clearInterval(interval)
+  }, [navigate, setProfile])
+
+  const handleSignOut = async () => {
+    await auth.signOut()
+    navigate('/login', { replace: true })
+  }
 
   return (
     <div className="min-h-dvh bg-surface-950 flex flex-col items-center justify-center px-4 text-center">
@@ -30,8 +61,7 @@ export default function PendingApprovalPage() {
           Your account is waiting for admin approval.
         </p>
         <p className="text-zinc-500 text-sm mb-8">
-          You'll receive access to Unit 1 within 24 hours of registration.
-          Check back soon!
+          This page checks automatically. Once approved, you'll be taken straight to your dashboard!
         </p>
         <div className="card-game p-4 text-left mb-6">
           <p className="text-zinc-400 text-sm font-medium mb-2">While you wait, you can:</p>
@@ -41,12 +71,27 @@ export default function PendingApprovalPage() {
             <li>✅ Choose your avatar (coming soon)</li>
           </ul>
         </div>
-        <button
-          onClick={() => auth.signOut()}
-          className="btn-secondary text-sm gap-2 mx-auto"
-        >
-          <LogOut size={16} /> Sign Out
-        </button>
+        <div className="flex gap-3 justify-center">
+          <button
+            onClick={handleSignOut}
+            className="btn-secondary text-sm gap-2"
+          >
+            <LogOut size={16} /> Sign Out
+          </button>
+          <button
+            onClick={() => {
+              api.get('/auth/me').then(res => {
+                if (res.data.accountStatus === 'active') {
+                  setProfile(res.data)
+                  navigate('/dashboard', { replace: true })
+                }
+              }).catch(() => {})
+            }}
+            className="btn-secondary text-sm gap-2"
+          >
+            <RefreshCw size={16} /> Refresh Status
+          </button>
+        </div>
       </motion.div>
     </div>
   )

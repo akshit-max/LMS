@@ -28,6 +28,8 @@ func New(fb *config.FirebaseClients, cfg *config.Config, mediaSvc media.MediaSer
 	attemptRepo       := repository.NewAttemptRepository(fb.Firestore)
 	unlockRepo        := repository.NewUnlockRequestRepository(fb.Firestore)
 	notifRepo         := repository.NewNotificationRepository(fb.Firestore)
+	badgeRepo         := repository.NewBadgeRepository(fb.Firestore)
+	questionAdminRepo := repository.NewQuestionAdminRepository(fb.Firestore)
 
 	// ─── Services ────────────────────────────────────────────────────────────
 	authService       := service.NewAuthService(userRepo)
@@ -38,20 +40,27 @@ func New(fb *config.FirebaseClients, cfg *config.Config, mediaSvc media.MediaSer
 		chapterRepo, chapterStatusRepo, attemptRepo, unlockRepo, notifRepo, unitRepo,
 	)
 
+	badgeService := service.NewBadgeService(badgeRepo, notifRepo, progressRepo)
+
 	quizService := service.NewQuizService(
-		quizRepo, attemptRepo, chapterStatusRepo, progressRepo, progressionService,
+		quizRepo, attemptRepo, chapterStatusRepo, progressRepo, progressionService, badgeService, notifRepo,
 	)
 
 	adminService := service.NewAdminService(
 		unlockRepo, chapterRepo, chapterStatusRepo, notifRepo, userRepo, unitRepo, fb.Firestore,
 	)
 
+	practiceService := service.NewPracticeService(quizRepo, attemptRepo)
+
 	// ─── Handlers ─────────────────────────────────────────────────────────────
 	authHandler         := handler.NewAuthHandler(authService)
 	curriculumHandler   := handler.NewCurriculumHandler(curriculumService)
-	adminHandler        := handler.NewAdminHandler(userRepo, adminService)
+	adminHandler        := handler.NewAdminHandler(userRepo, adminService, curriculumService, progressRepo, questionAdminRepo)
 	quizHandler         := handler.NewQuizHandler(quizService)
 	notifHandler        := handler.NewNotificationHandler(notifRepo, unlockRepo)
+	badgeHandler        := handler.NewBadgeHandler(badgeRepo)
+	practiceHandler     := handler.NewPracticeHandler(practiceService)
+	leaderboardHandler  := handler.NewLeaderboardHandler(progressRepo, userRepo)
 
 	// ─── Middleware ───────────────────────────────────────────────────────────
 	authMiddleware := middleware.AuthMiddleware(fb.Auth)
@@ -93,6 +102,17 @@ func New(fb *config.FirebaseClients, cfg *config.Config, mediaSvc media.MediaSer
 		r.Post("/notifications/{notifID}/read", notifHandler.MarkRead)
 		r.Get("/me/unlock-requests", notifHandler.GetMyUnlockRequests)
 
+		// ── Student: Badges + Progress ────────────────────────────────────────
+		r.Get("/me/badges", badgeHandler.ListMyBadges)
+
+		// ── Leaderboard ────────────────────────────────────────────────
+		r.Get("/leaderboard", leaderboardHandler.GetLeaderboard)
+
+		// ── Practice Arena ─────────────────────────────────────────────
+		// Separate from normal quiz — no progression/XP side effects
+		r.Post("/practice/quizzes/{quizID}/start", practiceHandler.StartPractice)
+		r.Post("/practice/attempts/{attemptID}/submit", practiceHandler.SubmitPractice)
+
 		// ── Admin ─────────────────────────────────────────────────────────────
 		// Role is always verified from Firestore — never trusted from the JWT.
 		r.Route("/admin", func(r chi.Router) {
@@ -100,14 +120,24 @@ func New(fb *config.FirebaseClients, cfg *config.Config, mediaSvc media.MediaSer
 
 			// User management
 			r.Get("/users", adminHandler.ListUsers)
+			r.Get("/users/{uid}/progress", adminHandler.GetUserProgress)
 			r.Post("/users/{uid}/approve", adminHandler.ApproveUser)
 			r.Post("/users/{uid}/suspend", adminHandler.SuspendUser)
+			r.Post("/users/{uid}/reactivate", adminHandler.ReactivateUser)
 
 			// Unlock request queue — the core M4 admin workflow
 			r.Get("/unlock-requests", adminHandler.ListUnlockRequests)
 			r.Post("/unlock-requests/{requestID}/approve", adminHandler.ApproveUnlock)
 			r.Post("/unlock-requests/{requestID}/reject", adminHandler.RejectUnlock)
 			r.Post("/unlock-requests/{requestID}/retry", adminHandler.RequestRetry)
+
+			// Admin curriculum — raw, non-student-personalized views
+			r.Get("/units", curriculumHandler.ListUnitsRaw)
+			r.Get("/units/{unitID}/chapters", curriculumHandler.ListChaptersRaw)
+
+			// Admin question management
+			r.Get("/questions", adminHandler.ListQuestions)
+			r.Post("/questions/{questionID}/approval", adminHandler.SetQuestionApproval)
 		})
 	})
 

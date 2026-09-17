@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { signInWithPopup, signInWithEmailAndPassword } from 'firebase/auth'
 import { motion } from 'framer-motion'
@@ -10,7 +10,7 @@ import { useAuthStore } from '@/store/authStore'
 export default function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { profile } = useAuthStore()
+  const { profile, profileLoaded, firebaseUser } = useAuthStore()
 
   const [mode, setMode] = useState<'school' | 'independent'>('school')
   const [email, setEmail] = useState('')
@@ -20,9 +20,19 @@ export default function LoginPage() {
 
   const from = (location.state as any)?.from?.pathname
 
-  const redirectAfterLogin = (role: string) => {
-    const dest = from && from !== '/login' ? from : getDashboardPath(role as any)
-    navigate(dest, { replace: true })
+  // ── React to profile being loaded ───────────────────────────────────────────
+  // After any sign-in (Google or email/password), AuthProvider asynchronously
+  // fetches the profile from the backend. Once it arrives we redirect here.
+  useEffect(() => {
+    if (profileLoaded && firebaseUser && profile) {
+      const dest = from && from !== '/login' ? from : getDashboardPath(profile.role as any)
+      navigate(dest, { replace: true })
+    }
+  }, [profileLoaded, firebaseUser, profile, navigate, from])
+
+  const redirectAfterLogin = (_role: string) => {
+    // Navigation is now handled by the useEffect above.
+    // This function is kept for any direct-navigate calls.
   }
 
   // School student / admin — email + password login
@@ -33,8 +43,7 @@ export default function LoginPage() {
 
     try {
       await signInWithEmailAndPassword(auth, email, password)
-      // Profile will be fetched by AuthProvider — wait for it
-      // Navigate is handled via profile watch below
+      // AuthProvider will set profile; useEffect above handles redirect
     } catch (err: any) {
       setError(getFirebaseErrorMessage(err.code))
     } finally {
@@ -49,7 +58,7 @@ export default function LoginPage() {
 
     try {
       await signInWithPopup(auth, googleProvider)
-      // AuthProvider will fetch/create profile, then route guard will redirect
+      // AuthProvider will set profile; useEffect above handles redirect
     } catch (err: any) {
       if (err.code !== 'auth/popup-closed-by-user') {
         setError(getFirebaseErrorMessage(err.code))

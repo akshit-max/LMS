@@ -27,6 +27,11 @@ export default function QuizPage() {
   const [timeLeft, setTimeLeft] = useState(TIMER_SECONDS)
   const [timerFrozen, setTimerFrozen] = useState(false)
   const [reorderItems, setReorderItems] = useState<string[]>([])
+  // Match the Following state: { leftSelected, pairs: {left→right} }
+  const [matchLeft, setMatchLeft] = useState<string | null>(null)
+  const [matchPairs, setMatchPairs] = useState<Record<string, string>>({})
+  // Visual streak — counts consecutive non-blank answers (display only, not authoritative)
+  const [visualStreak, setVisualStreak] = useState(0)
   const questionStartTime = useRef(Date.now())
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -49,6 +54,9 @@ export default function QuizPage() {
     if (currentQuestion.type === 'reorder') {
       setReorderItems([...currentQuestion.options].sort(() => Math.random() - 0.5))
     }
+    // Reset match state
+    setMatchLeft(null)
+    setMatchPairs({})
   }, [currentQuestion?.id])
 
   // Countdown timer
@@ -60,8 +68,11 @@ export default function QuizPage() {
         const next = t - 1
         setTimerPct((next / TIMER_SECONDS) * 100)
         if (next <= 0) {
-          // Time's up — auto-submit blank
-          handleSelectAnswer('')
+          // Time's up — auto-submit current selection or blank
+          // We must use a ref or state wrapper, but since this runs in setInterval, 
+          // we use the dispatcher pattern or just rely on useEffect's scope?
+          // Actually, we can just call confirmAnswer from inside the setTimeLeft using the stale closure?
+          // Better: just trigger the timeout state.
           return 0
         }
         return next
@@ -71,35 +82,58 @@ export default function QuizPage() {
     return () => { if (timerRef.current) clearInterval(timerRef.current) }
   }, [timerFrozen, currentQuestion?.id])
 
-  const handleSelectAnswer = useCallback((answer: string) => {
-    if (selected !== null || timerFrozen) return
+  const handleOptionClick = useCallback((answer: string) => {
+    if (timerFrozen) return
+    setSelected(answer)
+  }, [timerFrozen])
+
+  const confirmAnswer = useCallback((answerToRecord: string) => {
+    if (timerFrozen) return
     if (timerRef.current) clearInterval(timerRef.current)
     setTimerFrozen(true)
-    setSelected(answer)
+
+    // Update visual streak
+    if (answerToRecord === '') {
+      setVisualStreak(0)
+    } else {
+      setVisualStreak(s => s + 1)
+    }
 
     const timeTakenMs = Date.now() - questionStartTime.current
-
     recordAnswer({
       questionId: currentQuestion!.id,
-      selectedAnswer: answer,
+      selectedAnswer: answerToRecord,
       timeTakenMs,
     })
-  }, [selected, timerFrozen, currentQuestion, recordAnswer])
-
-  const handleNext = () => {
-    if (progress.current >= progress.total) {
+  }, [timerFrozen, currentQuestion, recordAnswer])
+  const handleNext = useCallback(() => {
+    if (!timerFrozen) {
+      confirmAnswer(selected ?? '')
+    }
+    
+    if (progress.current >= progress.total - 1) {
       handleSubmitAll()
     } else {
       nextQuestion()
     }
-  }
+  }, [timerFrozen, selected, confirmAnswer, progress, nextQuestion])
+
+  // Watch for timeout hitting 0 to trigger submission
+  useEffect(() => {
+    if (timeLeft === 0 && !timerFrozen) {
+       handleNext()
+    }
+  }, [timeLeft, timerFrozen, handleNext])
 
   const handleSubmitAll = () => {
     if (!attemptId) return
     setStatus('submitting')
 
+    // Read the latest state from the store directly to avoid closure staleness
+    const latestAnswers = useQuizSessionStore.getState().answers
+
     submitAttempt(
-      { attemptId, answers: [...answers] },
+      { attemptId, answers: latestAnswers },
       {
         onSuccess: (result) => {
           setResult(result)
@@ -154,6 +188,13 @@ export default function QuizPage() {
             {progress.current}/{progress.total}
           </span>
 
+          {/* Streak badge — visual only, shows answered-question streak */}
+          {visualStreak >= 2 && (
+            <span className="text-xs font-black text-accent-400 shrink-0">
+              ⚡{visualStreak}x
+            </span>
+          )}
+
           {/* Circular timer */}
           <CircularTimer pct={timerPct} seconds={timeLeft} color={timerColor} frozen={timerFrozen} />
         </div>
@@ -196,9 +237,51 @@ export default function QuizPage() {
               {currentQuestion.type === 'reorder' ? (
                 <ReorderQuestion
                   items={reorderItems}
-                  onConfirm={handleSelectAnswer}
-                  disabled={selected !== null}
+                  onConfirm={handleOptionClick}
+                  disabled={timerFrozen}
                 />
+              ) : currentQuestion.type === 'match' ? (
+                <MatchQuestion
+                  options={currentQuestion.options}
+                  leftSelected={matchLeft}
+                  pairs={matchPairs}
+                  disabled={timerFrozen}
+                  onLeftClick={(item) => {
+                    if (timerFrozen) return
+                    // If already paired, unpair
+                    if (matchPairs[item]) {
+                      setMatchPairs(p => { const n = { ...p }; delete n[item]; return n })
+                    } else {
+                      setMatchLeft(l => l === item ? null : item)
+                    }
+                  }}
+                  onRightClick={(rightItem) => {
+                    if (timerFrozen || !matchLeft) return
+                    const newPairs = { ...matchPairs, [matchLeft]: rightItem }
+                    setMatchPairs(newPairs)
+                    setMatchLeft(null)
+                    // Half the options are left-side items
+                    const leftCount = Math.floor(currentQuestion.options.length / 2)
+                    if (Object.keys(newPairs).length === leftCount) {
+                      // All paired — build canonical answer
+                      const canonical = Object.keys(newPairs).sort().map(l => `${l}→${newPairs[l]}`).join('|')
+                      handleOptionClick(canonical)
+                    }
+                  }}
+                />
+              ) : currentQuestion.type === 'odd_one_out' ? (
+                <div className="space-y-3">
+                  {currentQuestion.options.map((option, i) => (
+                    <OddOneTile
+                      key={option}
+                      option={option}
+                      index={i}
+                      selected={selected === option}
+                      disabled={timerFrozen}
+                      onClick={() => handleOptionClick(option)}
+                    />
+                  ))}
+                </div>
               ) : (
                 currentQuestion.options.map((option, i) => (
                   <AnswerTile
@@ -206,8 +289,8 @@ export default function QuizPage() {
                     option={option}
                     index={i}
                     selected={selected === option}
-                    disabled={selected !== null}
-                    onClick={() => handleSelectAnswer(option)}
+                    disabled={timerFrozen}
+                    onClick={() => handleOptionClick(option)}
                   />
                 ))
               )}
@@ -222,7 +305,7 @@ export default function QuizPage() {
                   className="mt-5"
                 >
                   <button onClick={handleNext} className="btn-game w-full text-base py-3.5">
-                    {isLast ? 'Submit Quiz →' : 'Next Question →'}
+                    {progress.current >= progress.total - 1 ? 'Submit Quiz →' : 'Next Question →'}
                   </button>
                 </motion.div>
               )}
@@ -283,42 +366,203 @@ function ReorderQuestion({
   onConfirm: (answer: string) => void,
   disabled: boolean,
 }) {
-  const [order, setOrder] = useState(items)
-  const [dragging, setDragging] = useState<number | null>(null)
+  const [bank, setBank] = useState<string[]>(items)
+  const [answer, setAnswer] = useState<string[]>([])
 
-  const move = (from: number, to: number) => {
-    const next = [...order]
-    const [item] = next.splice(from, 1)
-    next.splice(to, 0, item)
-    setOrder(next)
+  // Reset state if items change (e.g. new question)
+  useEffect(() => {
+    setBank(items)
+    setAnswer([])
+  }, [items])
+
+  const handleBankClick = (word: string, idx: number) => {
+    if (disabled) return
+    setBank(b => b.filter((_, i) => i !== idx))
+    setAnswer(a => [...a, word])
+  }
+
+  const handleAnswerClick = (word: string, idx: number) => {
+    if (disabled) return
+    setAnswer(a => a.filter((_, i) => i !== idx))
+    setBank(b => [...b, word])
   }
 
   return (
-    <div className="space-y-2">
-      <p className="text-zinc-500 text-xs text-center mb-3">Tap items to rearrange</p>
-      {order.map((item, i) => (
-        <div
-          key={item}
-          className={`card-game p-3 flex items-center gap-3 cursor-grab active:cursor-grabbing
-            ${dragging === i ? 'opacity-50 border-primary-500/60' : 'hover:border-zinc-600'}`}
-          draggable
-          onDragStart={() => setDragging(i)}
-          onDragOver={e => { e.preventDefault(); if (dragging !== null && dragging !== i) move(dragging, i) }}
-          onDragEnd={() => setDragging(null)}
-        >
-          <span className="text-zinc-600 text-xs font-mono">≡</span>
-          <span className="text-white text-sm">{item}</span>
+    <div className="flex flex-col gap-6">
+      {/* Answer Area */}
+      <div className="min-h-[60px] p-3 border-b-2 border-zinc-800 flex flex-wrap gap-2 items-start content-start">
+        {answer.length === 0 && (
+          <span className="text-zinc-600 text-sm italic mt-1">Tap words to build the sentence...</span>
+        )}
+        <AnimatePresence>
+          {answer.map((word, i) => (
+            <motion.button
+              key={`ans-${word}-${i}`}
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              onClick={() => handleAnswerClick(word, i)}
+              disabled={disabled}
+              className="px-3 py-1.5 bg-primary-500 text-white rounded-lg font-medium shadow-sm active:scale-95 transition-transform"
+            >
+              {word}
+            </motion.button>
+          ))}
+        </AnimatePresence>
+      </div>
+
+      {/* Word Bank Area */}
+      <div className="flex flex-wrap gap-2 justify-center">
+        <AnimatePresence>
+          {bank.map((word, i) => (
+            <motion.button
+              key={`bank-${word}-${i}`}
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              onClick={() => handleBankClick(word, i)}
+              disabled={disabled}
+              className="px-3 py-1.5 bg-zinc-800 text-zinc-300 border border-zinc-700 rounded-lg font-medium shadow-sm hover:bg-zinc-700 active:scale-95 transition-all"
+            >
+              {word}
+            </motion.button>
+          ))}
+        </AnimatePresence>
+      </div>
+
+      <button
+        onClick={() => onConfirm(answer.join(' '))}
+        disabled={disabled || answer.length !== items.length}
+        className="btn-game w-full mt-2 disabled:opacity-50"
+      >
+        Confirm Order
+      </button>
+    </div>
+  )
+}
+
+// ─── Match the Following Question ─────────────────────────────────────────────
+// Convention: options array = [...leftItems, ...rightItems] where first half is
+// the left column and second half is the right column.
+// The confirmed answer string is sorted-left-keys→right joined by '|'.
+// Admin must store correctAnswer in the same canonical format.
+
+function MatchQuestion({
+  options,
+  leftSelected,
+  pairs,
+  disabled,
+  onLeftClick,
+  onRightClick,
+}: {
+  options: string[]
+  leftSelected: string | null
+  pairs: Record<string, string>
+  disabled: boolean
+  onLeftClick: (item: string) => void
+  onRightClick: (item: string) => void
+}) {
+  const half = Math.floor(options.length / 2)
+  const leftItems = options.slice(0, half)
+  const rightItems = options.slice(half)
+  const usedRight = new Set(Object.values(pairs))
+
+  return (
+    <div className="space-y-4">
+      <p className="text-zinc-500 text-xs text-center">Tap a left item, then its match on the right</p>
+      <div className="grid grid-cols-2 gap-3">
+        {/* Left column */}
+        <div className="space-y-2">
+          {leftItems.map((item, i) => {
+            const isPaired = !!pairs[item]
+            const isActive = leftSelected === item
+            return (
+              <motion.button
+                key={item}
+                initial={{ opacity: 0, x: -12 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.06 }}
+                onClick={() => onLeftClick(item)}
+                disabled={disabled}
+                className={`w-full px-3 py-2.5 rounded-xl border text-sm font-medium text-left transition-all duration-150
+                  ${isPaired ? 'border-success-500/50 bg-success-500/15 text-success-300' :
+                    isActive ? 'border-primary-500 bg-primary-500/20 text-white scale-[0.98]' :
+                    'border-zinc-700 bg-zinc-800/60 text-zinc-300 hover:border-zinc-600'}`}
+              >
+                {isPaired ? `✓ ${item}` : item}
+                {isPaired && <span className="text-zinc-500 text-xs block truncate">&rarr; {pairs[item]}</span>}
+              </motion.button>
+            )
+          })}
         </div>
-      ))}
-      {!disabled && (
-        <button
-          onClick={() => onConfirm(order.join(' '))}
-          className="btn-game w-full mt-2"
-        >
-          Confirm Order
-        </button>
+
+        {/* Right column */}
+        <div className="space-y-2">
+          {rightItems.map((item, i) => {
+            const isUsed = usedRight.has(item)
+            return (
+              <motion.button
+                key={item}
+                initial={{ opacity: 0, x: 12 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.06 }}
+                onClick={() => onRightClick(item)}
+                disabled={disabled || isUsed}
+                className={`w-full px-3 py-2.5 rounded-xl border text-sm font-medium text-left transition-all duration-150
+                  ${isUsed ? 'border-success-500/30 bg-success-500/10 text-zinc-500 opacity-60 cursor-not-allowed' :
+                    leftSelected ? 'border-accent-500/60 bg-accent-500/10 text-accent-300 hover:bg-accent-500/20 animate-pulse' :
+                    'border-zinc-700 bg-zinc-800/60 text-zinc-300 hover:border-zinc-600'}`}
+              >
+                {item}
+              </motion.button>
+            )
+          })}
+        </div>
+      </div>
+
+      {leftSelected && (
+        <p className="text-center text-accent-400 text-xs font-medium animate-pulse">
+          Now tap a match for "{leftSelected}"
+        </p>
       )}
     </div>
+  )
+}
+
+// ─── Odd One Out Tile ─────────────────────────────────────────────────────────
+
+function OddOneTile({
+  option, index, selected, disabled, onClick,
+}: {
+  option: string, index: number, selected: boolean, disabled: boolean, onClick: () => void,
+}) {
+  return (
+    <motion.button
+      initial={{ opacity: 0, x: 16 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: index * 0.05 }}
+      onClick={onClick}
+      disabled={disabled}
+      className={`answer-tile flex items-center gap-3 transition-all duration-150
+        ${selected ? 'border-red-500 bg-red-500/20 scale-[0.99]' : ''}
+        ${disabled && !selected ? 'opacity-40' : ''}
+        ${!disabled ? 'hover:scale-[1.01] active:scale-[0.98] hover:border-red-500/40' : ''}`}
+    >
+      <span className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 transition-colors
+        ${selected ? 'bg-red-500 text-white' : 'bg-zinc-700 text-zinc-400'}`}>
+        {TILE_LETTERS[index] ?? index + 1}
+      </span>
+      <span className="text-sm font-medium text-left leading-snug flex-1">{option}</span>
+      {selected && (
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          className="w-5 h-5 rounded-full bg-red-500/30 border-2 border-red-500 shrink-0"
+        />
+      )}
+    </motion.button>
   )
 }
 

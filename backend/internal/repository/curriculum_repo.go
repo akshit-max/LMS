@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"sort"
 
 	"cloud.google.com/go/firestore"
@@ -157,9 +158,24 @@ func (r *ChapterStatusRepository) Set(ctx context.Context, cs *domain.ChapterSta
 
 // InitializeForUser creates "available" status for the first chapter, "locked" for the rest.
 // Called when a student's account is first approved.
+// GUARD: If a chapterStatus document already exists for a chapter, it is skipped —
+// this prevents re-approving a student from overwriting their completed/available chapters.
 func (r *ChapterStatusRepository) InitializeForUser(ctx context.Context, userID string, chapters []*domain.Chapter) error {
-	batch := r.db.Batch()
 	for i, ch := range chapters {
+		ref := r.db.Collection(chapterStatusCollection).Doc(docID(userID, ch.ID))
+
+		// Check if this document already exists
+		existing, err := ref.Get(ctx)
+		if err == nil && existing.Exists() {
+			// Document already exists — skip it. Never overwrite existing progress.
+			continue
+		}
+		// If err != nil and it's not a "not found" error, skip to be safe
+		if err != nil && status.Code(err) != codes.NotFound {
+			continue
+		}
+
+		// Document does not exist — create it
 		s := domain.ChapterStatus{
 			UserID:    userID,
 			ChapterID: ch.ID,
@@ -169,9 +185,9 @@ func (r *ChapterStatusRepository) InitializeForUser(ctx context.Context, userID 
 		if i == 0 {
 			s.Status = domain.ChapterStatusAvailable
 		}
-		ref := r.db.Collection(chapterStatusCollection).Doc(docID(userID, ch.ID))
-		batch.Set(ref, s)
+		if _, err := ref.Set(ctx, s); err != nil {
+			return fmt.Errorf("InitializeForUser: set chapter %s: %w", ch.ID, err)
+		}
 	}
-	_, err := batch.Commit(ctx)
-	return err
+	return nil
 }

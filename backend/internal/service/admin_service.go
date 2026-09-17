@@ -247,6 +247,23 @@ func (s *AdminService) RequestRetry(ctx context.Context, adminUID, requestID, ad
 		},
 	})
 
+	// Reset chapter statuses for this unit so the student has to start from scratch
+	chapters, err := s.chapterRepo.GetByUnit(ctx, req.UnitID)
+	if err == nil && len(chapters) > 0 {
+		for i, ch := range chapters {
+			cs := &domain.ChapterStatus{
+				UserID:    req.UserID,
+				ChapterID: ch.ID,
+				UnitID:    req.UnitID,
+				Status:    domain.ChapterStatusLocked,
+			}
+			if i == 0 {
+				cs.Status = domain.ChapterStatusAvailable
+			}
+			_ = s.chapterStatusRepo.Set(ctx, cs)
+		}
+	}
+
 	return nil
 }
 

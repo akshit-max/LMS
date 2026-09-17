@@ -1,14 +1,29 @@
 import { useNavigate, useParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { CheckCircle, XCircle, Star, Zap, RotateCcw, Home, ChevronDown, ChevronUp } from 'lucide-react'
+import { CheckCircle, XCircle, Star, Zap, RotateCcw, Home, ChevronDown, ChevronUp, Trophy } from 'lucide-react'
 import { useState } from 'react'
 import { useQuizSessionStore } from '@/store/quizSessionStore'
+
+// Static badge catalog — mirrors backend domain.BadgeCatalog.
+// Only used for display; the backend is authoritative for award decisions.
+const BADGE_ICONS: Record<string, string> = {
+  first_blood: '🩸', perfect_score: '💯', hat_trick: '🎩',
+  streak_starter: '🔥', streak_warrior: '⚔️', unit_mastered: '🏆',
+  speed_demon: '⚡', combo_king: '👑', top_scorer: '🌟', grammar_god_badge: '⚡',
+}
+const BADGE_NAMES: Record<string, string> = {
+  first_blood: 'First Blood', perfect_score: 'Perfect Score', hat_trick: 'Hat Trick',
+  streak_starter: 'Streak Starter', streak_warrior: 'Streak Warrior', unit_mastered: 'Unit Mastered',
+  speed_demon: 'Speed Demon', combo_king: 'Combo King', top_scorer: 'Top Scorer', grammar_god_badge: 'Grammar God',
+}
 
 export default function QuizResultPage() {
   const { quizId } = useParams<{ quizId: string }>()
   const navigate = useNavigate()
   const { result, reset } = useQuizSessionStore()
   const [showReview, setShowReview] = useState(false)
+  const [showUnitCompleteModal, setShowUnitCompleteModal] = useState(true)
+  const [showRankUpModal, setShowRankUpModal] = useState(true)
 
   // If no result in store (e.g. page refresh), redirect to intro
   if (!result) {
@@ -120,31 +135,41 @@ export default function QuizResultPage() {
               🏆 Personal Best!
             </motion.p>
           )}
+
+          {/* Max combo display */}
+          {result.maxCombo > 1 && (
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.85 }}
+              className="text-accent-400 text-xs font-bold mt-1"
+            >
+              ⚡ {result.maxCombo}x Combo!
+            </motion.p>
+          )}
         </motion.div>
 
-        {/* Unit Complete card — shown when all unit quizzes are ≥90% */}
-        {result.unitComplete && (
+        {/* Badges earned this attempt */}
+        {result.badgesEarned?.length > 0 && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.92 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.9, type: 'spring', stiffness: 200 }}
-            className="w-full card-game p-5 text-center border-accent-500/40 bg-accent-500/5 mb-4"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.9 }}
+            className="w-full card-game p-4 mb-4 border-warning-500/30 bg-warning-500/5"
           >
-            <p className="text-3xl mb-2">🎓</p>
-            <h3 className="font-display font-bold text-white text-base mb-1">Unit Complete!</h3>
-            <p className="text-zinc-400 text-sm mb-3">
-              You've mastered every chapter in this unit at ≥90%.
-            </p>
-            <div className="p-3 bg-zinc-800/60 rounded-xl">
-              <p className="text-accent-400 text-sm font-medium">
-                ⏳ Unlock request sent to your admin.
-              </p>
-              <p className="text-zinc-600 text-xs mt-1">
-                Once approved, the next unit will appear in your journey.
-              </p>
+            <p className="text-warning-400 text-xs font-bold uppercase tracking-wider mb-2">🎖️ Badges Unlocked!</p>
+            <div className="flex flex-wrap gap-2">
+              {result.badgesEarned.map(bid => (
+                <div key={bid} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-800 border border-zinc-700">
+                  <span className="text-base">{BADGE_ICONS[bid] ?? '🏅'}</span>
+                  <span className="text-white text-xs font-semibold">{BADGE_NAMES[bid] ?? bid}</span>
+                </div>
+              ))}
             </div>
           </motion.div>
         )}
+
+        {/* Unit Complete card — moved to popup modal at the bottom */}
 
         {/* Attempt info */}
         <motion.div
@@ -227,6 +252,83 @@ export default function QuizResultPage() {
         )}
 
       </main>
+
+      {/* Rank-Up Modal — shown first, dismisses to show unit complete if applicable */}
+      <AnimatePresence>
+        {result.rankUpTitle && showRankUpModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.8, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              className="card-game p-6 max-w-sm w-full text-center border-accent-500/40 bg-zinc-900 shadow-2xl"
+            >
+              <motion.p
+                className="text-6xl mb-4"
+                animate={{ rotate: [0, -15, 15, -10, 10, 0], scale: [1, 1.2, 1] }}
+                transition={{ duration: 0.8 }}
+              >🎉</motion.p>
+              <h3 className="font-display font-black text-white text-2xl mb-1">Rank Up!</h3>
+              <p className="text-accent-400 font-bold text-lg mb-3">{result.rankUpTitle}</p>
+              <p className="text-zinc-400 text-sm mb-6">
+                You've levelled up your grammar mastery. Keep the momentum going!
+              </p>
+              <button
+                onClick={() => setShowRankUpModal(false)}
+                className="btn-game w-full py-3.5"
+              >
+                Let's Go! 🚀
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Unit Complete Popup — shown after rank-up is dismissed */}
+      <AnimatePresence>
+        {result.unitComplete && showUnitCompleteModal && !showRankUpModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20, opacity: 0 }}
+              className="card-game p-6 max-w-sm w-full text-center border-accent-500/40 bg-zinc-900 shadow-2xl"
+            >
+              <p className="text-5xl mb-4">🎓</p>
+              <h3 className="font-display font-black text-white text-2xl mb-2">Level Completed!</h3>
+              <p className="text-zinc-400 text-sm mb-5">
+                You've mastered every chapter in this unit at ≥90%.
+              </p>
+              
+              <div className="p-4 bg-accent-500/10 rounded-2xl mb-6 border border-accent-500/20">
+                <p className="text-accent-400 text-base font-bold mb-1">
+                  ⏳ Ask Admin to Unlock
+                </p>
+                <p className="text-accent-300/70 text-xs">
+                  An unlock request has been sent. Once approved, the next unit will appear in your journey.
+                </p>
+              </div>
+
+              <button
+                onClick={() => setShowUnitCompleteModal(false)}
+                className="btn-game w-full py-3.5"
+              >
+                Awesome!
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

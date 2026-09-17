@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"sort"
 	"time"
 
 	"cloud.google.com/go/firestore"
@@ -34,10 +35,10 @@ func (r *NotificationRepository) Create(ctx context.Context, n *domain.Notificat
 
 // GetForUser returns all notifications for a user, newest first.
 func (r *NotificationRepository) GetForUser(ctx context.Context, userID string) ([]*domain.Notification, error) {
+	// We omit OrderBy and Limit from the query to avoid needing a Firestore composite index 
+	// (userId == X + orderBy createdAt). We handle sorting and limiting in memory.
 	docs, err := r.db.Collection(notificationsCollection).
 		Where("userId", "==", userID).
-		OrderBy("createdAt", firestore.Desc).
-		Limit(50).
 		Documents(ctx).GetAll()
 	if err != nil {
 		return nil, err
@@ -50,6 +51,17 @@ func (r *NotificationRepository) GetForUser(ctx context.Context, userID string) 
 		}
 		notifs = append(notifs, &n)
 	}
+
+	// Sort newest first
+	sort.Slice(notifs, func(i, j int) bool {
+		return notifs[i].CreatedAt.After(notifs[j].CreatedAt)
+	})
+
+	// Limit to 50
+	if len(notifs) > 50 {
+		notifs = notifs[:50]
+	}
+
 	return notifs, nil
 }
 

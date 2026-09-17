@@ -81,6 +81,10 @@ export interface AttemptResult {
   unitComplete: boolean
   unlockRequestCreated: boolean
   personalBest: boolean
+  // Gamification — set by backend
+  rankUpTitle: string    // non-empty string if student just ranked up
+  badgesEarned: string[] // badge IDs newly awarded this submission
+  maxCombo: number       // highest consecutive correct streak this attempt
 }
 
 // Progress
@@ -97,6 +101,8 @@ export interface StudentProgress {
   coins: number
   badges: string[]
   botTrophies: string[]
+  quizzesCompletedToday: number
+  lastQuizDate: string
 }
 
 // Curriculum

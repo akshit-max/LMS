@@ -22,6 +22,17 @@ const QuizIntroPage    = lazy(() => import('@/features/student/QuizIntroPage'))
 const QuizPage         = lazy(() => import('@/features/student/QuizPage'))
 const QuizResultPage   = lazy(() => import('@/features/student/QuizResultPage'))
 
+const VideoLessonPage         = lazy(() => import('@/features/student/VideoLessonPage'))
+const GrammarNotesPage        = lazy(() => import('@/features/student/GrammarNotesPage'))
+const InteractiveLessonPage   = lazy(() => import('@/features/student/InteractiveLessonPage'))
+const MyProgressPage          = lazy(() => import('@/features/student/MyProgressPage'))
+const LeaderboardPage         = lazy(() => import('@/features/student/LeaderboardPage'))
+
+// Practice Arena — separate from mastery quiz flow
+const PracticeIntroPage  = lazy(() => import('@/features/student/practice/PracticeIntroPage'))
+const PracticePlayPage   = lazy(() => import('@/features/student/practice/PracticePlayPage'))
+const PracticeResultPage = lazy(() => import('@/features/student/practice/PracticeResultPage'))
+
 // Admin pages
 const AdminDashboard = lazy(() => import('@/features/admin/AdminDashboard'))
 
@@ -78,6 +89,30 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
   },
+  {
+    path: '/chapters/:chapterId/video',
+    element: (
+      <ProtectedRoute roles={['student']} requireActive>
+        <S><VideoLessonPage /></S>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/chapters/:chapterId/grammar',
+    element: (
+      <ProtectedRoute roles={['student']} requireActive>
+        <S><GrammarNotesPage /></S>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/chapters/:chapterId/interactive',
+    element: (
+      <ProtectedRoute roles={['student']} requireActive>
+        <S><InteractiveLessonPage /></S>
+      </ProtectedRoute>
+    ),
+  },
   // ── Quiz routes ───────────────────────────────────────────────────────────
   // /quiz/:quizId        → intro screen (shows quiz info, start button)
   // /quiz/:quizId/play   → active quiz question screen
@@ -106,9 +141,54 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
   },
-
-  // ── Admin routes ──────────────────────────────────────────────────────────
   {
+    path: '/progress',
+    element: (
+      <ProtectedRoute roles={['student']} requireActive>
+        <S><MyProgressPage /></S>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/leaderboard',
+    element: (
+      <ProtectedRoute roles={['student']} requireActive>
+        <S><LeaderboardPage /></S>
+      </ProtectedRoute>
+    ),
+  },
+
+  // ── Practice Arena routes ─────────────────────────────────────────────────
+  // CRITICAL: /practice/... routes go to Practice* components (no progression side effects)
+  // /quiz/...   routes go to mastery Quiz* components (progression, XP, stars)
+  // These must NEVER be mixed.
+  {
+    path: '/practice/:quizId',
+    element: (
+      <ProtectedRoute roles={['student']} requireActive>
+        <S><PracticeIntroPage /></S>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/practice/:quizId/play',
+    element: (
+      <ProtectedRoute roles={['student']} requireActive>
+        <S><PracticePlayPage /></S>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/practice/:quizId/result',
+    element: (
+      <ProtectedRoute roles={['student']} requireActive>
+        <S><PracticeResultPage /></S>
+      </ProtectedRoute>
+    ),
+  },
+
+  {
+
     path: '/admin',
     element: (
       <ProtectedRoute roles={['admin']}>

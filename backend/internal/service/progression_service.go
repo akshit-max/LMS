@@ -135,3 +135,74 @@ func (s *ProgressionService) EvaluateUnitCompletion(ctx context.Context, userID,
 
 	return true, nil
 }
+
+// UnlockNextChapter sets the chapter immediately after currentChapterID to "available".
+// Called after every successful chapter completion (score ≥ 90%).
+//
+// Idempotency guarantees:
+//   - If the next chapter is already "available" or "completed", this is a no-op.
+//   - If currentChapter is the last chapter in the unit, this is a no-op
+//     (unit-level completion is handled by EvaluateUnitCompletion separately).
+//
+// This is intentionally NOT responsible for creating the Admin unlock request —
+// that remains the sole responsibility of EvaluateUnitCompletion, which fires
+// only when ALL chapters in the unit are completed at ≥90%.
+func (s *ProgressionService) UnlockNextChapter(ctx context.Context, userID, currentChapterID, unitID string) error {
+	// 1. Get all chapters in this unit, sorted by order (guaranteed by GetByUnit)
+	chapters, err := s.chapterRepo.GetByUnit(ctx, unitID)
+	if err != nil {
+		return fmt.Errorf("UnlockNextChapter: fetch chapters: %w", err)
+	}
+
+	// 2. Find the index of the current chapter
+	currentIdx := -1
+	for i, ch := range chapters {
+		if ch.ID == currentChapterID {
+			currentIdx = i
+			break
+		}
+	}
+
+	if currentIdx == -1 {
+		// currentChapterID not found in this unit — data inconsistency, log and skip
+		return fmt.Errorf("UnlockNextChapter: chapter %s not found in unit %s", currentChapterID, unitID)
+	}
+
+	if currentIdx >= len(chapters)-1 {
+		// Last chapter — no next chapter to unlock.
+		// EvaluateUnitCompletion will handle the unit-level unlock request.
+		return nil
+	}
+
+	// 3. Get the next chapter
+	nextChapter := chapters[currentIdx+1]
+
+	// 4. Check existing status — never downgrade completed → available
+	existing, err := s.chapterStatusRepo.Get(ctx, userID, nextChapter.ID)
+	if err != nil {
+		return fmt.Errorf("UnlockNextChapter: get next chapter status: %w", err)
+	}
+	if existing != nil && (existing.Status == domain.ChapterStatusCompleted || existing.Status == domain.ChapterStatusAvailable) {
+		// Already at or beyond "available" — idempotent no-op
+		return nil
+	}
+
+	// 5. Set next chapter to available, preserving any existing bestScore/bestStars
+	nextCS := &domain.ChapterStatus{
+		UserID:    userID,
+		ChapterID: nextChapter.ID,
+		UnitID:    unitID,
+		Status:    domain.ChapterStatusAvailable,
+		BestScore: 0,
+		BestStars: 0,
+	}
+	if existing != nil {
+		nextCS.BestScore = existing.BestScore
+		nextCS.BestStars = existing.BestStars
+	}
+
+	if err := s.chapterStatusRepo.Set(ctx, nextCS); err != nil {
+		return fmt.Errorf("UnlockNextChapter: write next chapter status: %w", err)
+	}
+	return nil
+}

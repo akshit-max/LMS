@@ -116,3 +116,14 @@ func (r *AttemptRepository) CountAttempts(ctx context.Context, userID, quizID st
 	}
 	return len(docs), nil
 }
+
+// SetPracticeCompleted marks a practice attempt as practice_completed.
+// No transaction needed — practice attempts are never processed by progression pipelines.
+func (r *AttemptRepository) SetPracticeCompleted(ctx context.Context, attemptID string) error {
+	_, err := r.db.Collection(attemptsCollection).Doc(attemptID).Update(ctx, []firestore.Update{
+		{Path: "status", Value: "practice_completed"},
+		{Path: "completedAt", Value: time.Now()},
+	})
+	return err
+}
+

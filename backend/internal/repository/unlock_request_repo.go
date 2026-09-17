@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"sort"
 	"time"
 
 	"cloud.google.com/go/firestore"
@@ -37,7 +38,7 @@ func (r *UnlockRequestRepository) CreateIdempotent(ctx context.Context, req *dom
 	if err != nil {
 		return err
 	}
-	if existing != nil && existing.Status != domain.UnlockStatusRejected {
+	if existing != nil && existing.Status != domain.UnlockStatusRejected && existing.Status != domain.UnlockStatusRetryRequested {
 		return ErrUnlockRequestAlreadyExists
 	}
 
@@ -51,8 +52,6 @@ func (r *UnlockRequestRepository) CreateIdempotent(ctx context.Context, req *dom
 func (r *UnlockRequestRepository) GetByIdempotencyKey(ctx context.Context, key string) (*domain.UnlockRequest, error) {
 	docs, err := r.db.Collection(unlockRequestsCollection).
 		Where("idempotencyKey", "==", key).
-		OrderBy("requestedAt", firestore.Desc).
-		Limit(1).
 		Documents(ctx).GetAll()
 	if err != nil {
 		return nil, err
@@ -60,11 +59,26 @@ func (r *UnlockRequestRepository) GetByIdempotencyKey(ctx context.Context, key s
 	if len(docs) == 0 {
 		return nil, nil
 	}
-	var ur domain.UnlockRequest
-	if err := docs[0].DataTo(&ur); err != nil {
-		return nil, err
+	
+	result := make([]*domain.UnlockRequest, 0, len(docs))
+	for _, doc := range docs {
+		var ur domain.UnlockRequest
+		if err := doc.DataTo(&ur); err != nil {
+			continue
+		}
+		result = append(result, &ur)
 	}
-	return &ur, nil
+	
+	if len(result) == 0 {
+		return nil, nil
+	}
+	
+	// Sort newest first in-memory
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].RequestedAt.After(result[j].RequestedAt)
+	})
+	
+	return result[0], nil
 }
 
 // GetByID retrieves an unlock request by document ID.
@@ -83,11 +97,10 @@ func (r *UnlockRequestRepository) GetByID(ctx context.Context, id string) (*doma
 	return &ur, nil
 }
 
-// GetPending returns all unlock requests with status=pending, newest first.
+// GetPending returns all unlock requests with status=pending, sorted oldest first.
 func (r *UnlockRequestRepository) GetPending(ctx context.Context) ([]*domain.UnlockRequest, error) {
 	docs, err := r.db.Collection(unlockRequestsCollection).
 		Where("status", "==", domain.UnlockStatusPending).
-		OrderBy("requestedAt", firestore.Asc).
 		Documents(ctx).GetAll()
 	if err != nil {
 		return nil, err
@@ -100,6 +113,10 @@ func (r *UnlockRequestRepository) GetPending(ctx context.Context) ([]*domain.Unl
 		}
 		result = append(result, &ur)
 	}
+	// Sort oldest first in-memory (avoids needing a composite Firestore index)
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].RequestedAt.Before(result[j].RequestedAt)
+	})
 	return result, nil
 }
 
@@ -107,7 +124,6 @@ func (r *UnlockRequestRepository) GetPending(ctx context.Context) ([]*domain.Unl
 func (r *UnlockRequestRepository) GetForUser(ctx context.Context, userID string) ([]*domain.UnlockRequest, error) {
 	docs, err := r.db.Collection(unlockRequestsCollection).
 		Where("userId", "==", userID).
-		OrderBy("requestedAt", firestore.Desc).
 		Documents(ctx).GetAll()
 	if err != nil {
 		return nil, err
@@ -120,6 +136,10 @@ func (r *UnlockRequestRepository) GetForUser(ctx context.Context, userID string)
 		}
 		result = append(result, &ur)
 	}
+	// Sort newest first in-memory (avoids needing a composite Firestore index)
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].RequestedAt.After(result[j].RequestedAt)
+	})
 	return result, nil
 }
 

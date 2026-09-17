@@ -12,7 +12,7 @@ import {
   type UnlockRequest,
 } from '../student/hooks/useNotifications'
 
-export default function UnlockRequestQueue() {
+export default function UnlockRequestQueue({ compact = false }: { compact?: boolean }) {
   const { data: requests, isLoading, error } = useAdminUnlockRequests()
   const { mutate: approve, isPending: approving } = useApproveUnlock()
   const { mutate: reject, isPending: rejecting } = useRejectUnlock()
@@ -140,9 +140,9 @@ export default function UnlockRequestQueue() {
                       'bg-primary-500 hover:bg-primary-600'}`}
                 >
                   {(approving || rejecting || retrying) ? '...' : (
-                    activeAction.type === 'approve' ? 'Approve ✓' :
+                    activeAction.type === 'approve' ? 'Pass ✓' :
                     activeAction.type === 'reject' ? 'Reject' :
-                    'Request Retry'
+                    'Retry'
                   )}
                 </button>
               </div>
@@ -257,19 +257,19 @@ function RequestCard({
                   onClick={() => onAction(req.id, 'approve')}
                   className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-success-500/20 text-success-400 border border-success-500/30 text-sm font-bold hover:bg-success-500/30 transition-colors"
                 >
-                  <CheckCircle size={15} /> Approve
+                  <CheckCircle size={15} /> Pass
+                </button>
+                <button
+                  onClick={() => onAction(req.id, 'reject')}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-red-500/20 text-red-400 border border-red-500/30 text-sm font-bold hover:bg-red-500/30 transition-colors"
+                >
+                  <XCircle size={15} /> Reject
                 </button>
                 <button
                   onClick={() => onAction(req.id, 'retry')}
                   className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-primary-500/20 text-primary-400 border border-primary-500/30 text-sm font-bold hover:bg-primary-500/30 transition-colors"
                 >
                   <RotateCcw size={15} /> Retry
-                </button>
-                <button
-                  onClick={() => onAction(req.id, 'reject')}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-red-500/10 text-red-400 border border-red-500/20 text-sm font-bold hover:bg-red-500/20 transition-colors"
-                >
-                  <XCircle size={15} /> Reject
                 </button>
               </div>
             </div>

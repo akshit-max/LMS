@@ -1,6 +1,7 @@
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
 import type { AttemptStartResponse, AttemptResult, AnswerSubmission } from '@/types'
+import { useAuthStore } from '@/store/authStore'
 
 // POST /api/v1/quizzes/:quizId/start
 export function useStartAttempt() {
@@ -13,7 +14,12 @@ export function useStartAttempt() {
 }
 
 // POST /api/v1/attempts/:attemptId/submit
+// After a successful submission, invalidate all curriculum and progress queries so
+// the dashboard and journey pages reflect the new chapter statuses without a manual refresh.
 export function useSubmitAttempt() {
+  const queryClient = useQueryClient()
+  const uid = useAuthStore(s => s.firebaseUser?.uid)
+
   return useMutation({
     mutationFn: async ({
       attemptId,
@@ -25,17 +31,26 @@ export function useSubmitAttempt() {
       const res = await api.post<AttemptResult>(`/attempts/${attemptId}/submit`, { answers })
       return res.data
     },
+    onSuccess: () => {
+      // Invalidate all curriculum-related caches so the UI reflects the new
+      // chapter/unit statuses immediately — no manual browser refresh needed.
+      queryClient.invalidateQueries({ queryKey: ['units', uid] })
+      queryClient.invalidateQueries({ queryKey: ['chapters'] })   // invalidates all chapters since we scope by unitId and uid further down
+      queryClient.invalidateQueries({ queryKey: ['chapter'] })    // same for chapter
+      queryClient.invalidateQueries({ queryKey: ['progress', uid] })
+    },
   })
 }
 
 // GET /api/v1/attempts/:attemptId
 export function useAttemptResult(attemptId: string | null) {
+  const uid = useAuthStore(s => s.firebaseUser?.uid)
   return useQuery({
-    queryKey: ['attempt', attemptId],
+    queryKey: ['attempt', attemptId, uid],
     queryFn: async () => {
       const res = await api.get<AttemptResult>(`/attempts/${attemptId}`)
       return res.data
     },
-    enabled: !!attemptId,
+    enabled: !!attemptId && !!uid,
   })
 }

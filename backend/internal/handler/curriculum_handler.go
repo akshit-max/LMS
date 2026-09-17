@@ -65,3 +65,29 @@ func (h *CurriculumHandler) GetProgress(w http.ResponseWriter, r *http.Request) 
 	}
 	respondJSON(w, http.StatusOK, progress)
 }
+
+// ListChaptersRaw handles GET /api/v1/admin/units/{unitID}/chapters
+// Admin-only endpoint: returns raw chapter list without student-status enrichment.
+// The student-facing /units/{unitID}/chapters endpoint enriches chapters with
+// the requesting user's chapterStatus — which would return "locked" for admin
+// since admins have no chapterStatus documents.
+func (h *CurriculumHandler) ListChaptersRaw(w http.ResponseWriter, r *http.Request) {
+	unitID := chi.URLParam(r, "unitID")
+	chapters, err := h.curriculumService.GetChaptersRaw(r.Context(), unitID)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "failed to fetch chapters")
+		return
+	}
+	respondJSON(w, http.StatusOK, map[string]interface{}{"chapters": chapters})
+}
+
+// ListUnitsRaw handles GET /api/v1/admin/units
+// Admin-only: returns units without student-status enrichment.
+func (h *CurriculumHandler) ListUnitsRaw(w http.ResponseWriter, r *http.Request) {
+	units, err := h.curriculumService.GetUnitsRaw(r.Context())
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "failed to fetch units")
+		return
+	}
+	respondJSON(w, http.StatusOK, map[string]interface{}{"units": units})
+}
