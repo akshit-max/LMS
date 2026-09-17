@@ -61,10 +61,10 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="h-screen w-screen max-h-screen max-w-vw overflow-hidden bg-slate-50 flex flex-col lg:grid lg:grid-cols-2 font-sans selection:bg-orange-500 selection:text-white relative">
+    <div className="min-h-screen lg:h-screen w-screen max-w-full overflow-x-hidden lg:overflow-hidden bg-slate-50 flex flex-col lg:grid lg:grid-cols-2 font-sans selection:bg-orange-500 selection:text-white relative">
       
-      {/* ── LEFT HERO BANNER (50% Split, Exact Height Fit) ──────────────── */}
-      <div className="lg:col-span-1 bg-sky-200 relative overflow-hidden flex flex-col justify-between p-6 lg:p-8 h-full">
+      {/* ── LEFT HERO BANNER (Hidden on Mobile/Tablet < 1024px, 50% Desktop) ──── */}
+      <div className="hidden lg:flex lg:col-span-1 bg-sky-200 relative overflow-hidden flex-col justify-between p-8 h-full select-none">
         
         {/* Background Artwork Layer */}
         <div 
@@ -72,14 +72,15 @@ export default function LoginPage() {
           style={{ backgroundImage: `url('/login-banner.png')` }}
         />
 
-        {/* Soft Vignette Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/40 pointer-events-none" />
+        {/* Soft Contrast Gradients Top & Bottom */}
+        <div className="absolute top-0 inset-x-0 h-40 bg-gradient-to-b from-black/40 via-black/10 to-transparent pointer-events-none" />
+        <div className="absolute bottom-0 inset-x-0 h-32 bg-gradient-to-t from-black/30 via-transparent to-transparent pointer-events-none" />
 
-        {/* Floating Grammar Badges (Separated non-overlapping coordinates) */}
+        {/* Floating Grammar Badges (Positioned cleanly on top-right sky) */}
         <motion.div 
           animate={{ y: [0, -6, 0] }} 
           transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-          className="absolute top-14 right-10 hidden xl:flex items-center px-3.5 py-1.5 rounded-2xl bg-teal-500 text-white font-black text-xs shadow-lg border-2 border-white/90"
+          className="absolute top-12 right-12 flex items-center px-4 py-1.5 rounded-2xl bg-teal-500 text-white font-black text-xs shadow-xl border-2 border-white"
         >
           Nouns
         </motion.div>
@@ -87,7 +88,7 @@ export default function LoginPage() {
         <motion.div 
           animate={{ y: [0, 8, 0] }} 
           transition={{ repeat: Infinity, duration: 4.5, ease: "easeInOut", delay: 0.5 }}
-          className="absolute top-28 right-32 hidden xl:flex items-center px-3.5 py-1.5 rounded-2xl bg-pink-500 text-white font-black text-xs shadow-lg border-2 border-white/90"
+          className="absolute top-24 right-32 flex items-center px-4 py-1.5 rounded-2xl bg-pink-500 text-white font-black text-xs shadow-xl border-2 border-white"
         >
           Verbs
         </motion.div>
@@ -95,7 +96,7 @@ export default function LoginPage() {
         <motion.div 
           animate={{ y: [0, -7, 0] }} 
           transition={{ repeat: Infinity, duration: 5, ease: "easeInOut", delay: 1 }}
-          className="absolute top-44 right-12 hidden xl:flex items-center px-3.5 py-1.5 rounded-2xl bg-purple-600 text-white font-black text-xs shadow-lg border-2 border-white/90"
+          className="absolute top-36 right-10 flex items-center px-4 py-1.5 rounded-2xl bg-purple-600 text-white font-black text-xs shadow-xl border-2 border-white"
         >
           Adjectives
         </motion.div>
@@ -103,7 +104,7 @@ export default function LoginPage() {
         <motion.div 
           animate={{ y: [0, 7, 0] }} 
           transition={{ repeat: Infinity, duration: 4.2, ease: "easeInOut", delay: 1.5 }}
-          className="absolute top-60 right-36 hidden xl:flex items-center px-3.5 py-1.5 rounded-2xl bg-sky-500 text-white font-black text-xs shadow-lg border-2 border-white/90"
+          className="absolute top-48 right-28 flex items-center px-4 py-1.5 rounded-2xl bg-sky-500 text-white font-black text-xs shadow-xl border-2 border-white"
         >
           Adverbs
         </motion.div>
@@ -112,57 +113,55 @@ export default function LoginPage() {
         <motion.div 
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="absolute top-16 left-60 hidden 2xl:flex flex-col items-center p-2.5 px-3.5 rounded-2xl bg-white text-slate-900 font-extrabold text-[11px] shadow-2xl border-2 border-amber-300 text-center"
+          className="absolute top-14 left-56 flex flex-col items-center p-2 px-3.5 rounded-2xl bg-white text-slate-900 font-extrabold text-[11px] shadow-2xl border-2 border-amber-300 text-center"
         >
-          <span className="text-indigo-900">Better Grammar</span>
+          <span className="text-indigo-950">Better Grammar</span>
           <span className="text-orange-500">Brighter You! ✨</span>
         </motion.div>
 
         {/* Top Header Logo */}
         <div className="relative z-10 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="w-10 h-10 rounded-2xl bg-white/90 backdrop-blur-md border border-white/80 flex items-center justify-center text-xl shadow-md group-hover:scale-110 transition-transform">
+            <div className="w-10 h-10 rounded-2xl bg-white/90 backdrop-blur-md border border-white flex items-center justify-center text-xl shadow-md group-hover:scale-110 transition-transform">
               🦊
             </div>
             <div>
-              <span className="font-display font-black text-xl tracking-tight text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]">
+              <span className="font-display font-black text-xl tracking-tight text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
                 GrammoQuest
               </span>
-              <span className="block text-[9px] font-black uppercase tracking-widest text-amber-300 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+              <span className="block text-[9px] font-black uppercase tracking-widest text-amber-300 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
                 Grammar Adventure
               </span>
             </div>
           </Link>
         </div>
 
-        {/* Left Hero Typography Card (Non-overlapping & Easy to Read) */}
-        <div className="relative z-10 my-auto py-2 max-w-sm">
-          <div className="bg-black/30 backdrop-blur-md border border-white/20 p-5 sm:p-6 rounded-3xl shadow-2xl text-white">
-            <h1 className="font-display font-black text-3xl sm:text-4xl tracking-tight leading-tight mb-2 drop-shadow-md">
-              Small Steps. <br />
-              <span className="text-orange-400">Big </span>
-              <span className="text-purple-300">Brighter </span>
-              <span className="text-sky-200">Writers!</span>
-            </h1>
+        {/* Left Hero Typography (NO BOX! Borderless text on open sky) */}
+        <div className="relative z-10 my-auto py-2 max-w-xs">
+          <h1 className="font-display font-black text-3xl xl:text-4xl tracking-tight leading-[1.08] mb-2 text-white drop-shadow-[0_3px_6px_rgba(0,0,0,0.8)]">
+            Small Steps. <br />
+            <span className="text-orange-400">Big </span>
+            <span className="text-purple-300">Brighter </span>
+            <span className="text-sky-200">Writers!</span>
+          </h1>
 
-            <p className="text-white/90 font-bold text-xs sm:text-sm mb-4">
-              Learn grammar. Play. Grow. Shine!
-            </p>
+          <p className="text-white font-black text-xs xl:text-sm mb-4 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+            Learn grammar. Play. Grow. Shine!
+          </p>
 
-            {/* Wooden Signpost Stack */}
-            <div className="flex flex-wrap gap-1.5 max-w-[220px]">
-              <div className="py-1.5 px-3.5 rounded-lg bg-amber-500 text-white font-black text-[11px] tracking-wider shadow-md border-b-2 border-orange-700">
-                EXPLORE
-              </div>
-              <div className="py-1.5 px-3.5 rounded-lg bg-blue-600 text-white font-black text-[11px] tracking-wider shadow-md border-b-2 border-blue-800">
-                LEARN
-              </div>
-              <div className="py-1.5 px-3.5 rounded-lg bg-purple-600 text-white font-black text-[11px] tracking-wider shadow-md border-b-2 border-purple-800">
-                PRACTICE
-              </div>
-              <div className="py-1.5 px-3.5 rounded-lg bg-emerald-600 text-white font-black text-[11px] tracking-wider shadow-md border-b-2 border-emerald-800">
-                SUCCEED
-              </div>
+          {/* Wooden Signposts (Placed neatly in bottom left meadow) */}
+          <div className="flex flex-col gap-1.5 max-w-[160px]">
+            <div className="py-1.5 px-3.5 rounded-lg bg-amber-500 text-white font-black text-[10px] tracking-wider shadow-md border-b-2 border-orange-700 transform -rotate-1 hover:rotate-0 transition-transform cursor-default text-center">
+              EXPLORE
+            </div>
+            <div className="py-1.5 px-3.5 rounded-lg bg-blue-600 text-white font-black text-[10px] tracking-wider shadow-md border-b-2 border-blue-800 transform rotate-1 hover:rotate-0 transition-transform cursor-default text-center">
+              LEARN
+            </div>
+            <div className="py-1.5 px-3.5 rounded-lg bg-purple-600 text-white font-black text-[10px] tracking-wider shadow-md border-b-2 border-purple-800 transform -rotate-1 hover:rotate-0 transition-transform cursor-default text-center">
+              PRACTICE
+            </div>
+            <div className="py-1.5 px-3.5 rounded-lg bg-emerald-600 text-white font-black text-[10px] tracking-wider shadow-md border-b-2 border-emerald-800 transform rotate-1 hover:rotate-0 transition-transform cursor-default text-center">
+              SUCCEED
             </div>
           </div>
         </div>
@@ -174,14 +173,14 @@ export default function LoginPage() {
             <span className="font-bold text-white">"Grammar is your superpower!"</span>
             <span className="text-amber-300 font-black">— Grammo</span>
           </div>
-          <span className="hidden sm:inline-block text-white/80 font-bold text-[11px]">v2.0</span>
+          <span className="text-white/80 font-bold text-[11px] drop-shadow">v2.0</span>
         </div>
 
       </div>
 
 
-      {/* ── RIGHT FORM SECTION (50% Split, Exact Viewport Fit) ──────────────── */}
-      <div className="lg:col-span-1 bg-slate-50/90 flex flex-col justify-between p-6 lg:p-8 h-full overflow-y-auto lg:overflow-hidden relative">
+      {/* ── RIGHT FORM SECTION (Full Width on Mobile, 50% on Desktop) ──────── */}
+      <div className="w-full lg:col-span-1 bg-slate-50/90 flex flex-col justify-between p-4 sm:p-6 lg:p-8 min-h-screen lg:min-h-0 h-full overflow-y-auto lg:overflow-hidden relative">
         
         {/* Soft Organic Pastel Background Shapes */}
         <div className="absolute -top-12 -right-12 w-72 h-72 rounded-full bg-orange-100/70 border border-orange-200/40 pointer-events-none blur-sm" />
@@ -190,21 +189,28 @@ export default function LoginPage() {
         <div className="absolute top-1/3 -left-20 w-56 h-56 rounded-full bg-indigo-100/60 border border-indigo-200/30 pointer-events-none blur-sm" />
 
         {/* Top Navigation Bar */}
-        <div className="flex justify-end items-center gap-3 mb-2 relative z-10 shrink-0">
-          <span className="text-xs font-semibold text-slate-600">New here?</span>
-          <Link
-            to="/register"
-            className="px-4 py-1.5 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs tracking-wide shadow-md transition-all hover:scale-105"
-          >
-            Create an account
+        <div className="flex justify-between sm:justify-end items-center gap-3 mb-4 sm:mb-2 relative z-10 shrink-0">
+          <Link to="/" className="lg:hidden flex items-center gap-2">
+            <span className="text-xl">🦊</span>
+            <span className="font-display font-black text-lg text-indigo-950">GrammoQuest</span>
           </Link>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-slate-600">New here?</span>
+            <Link
+              to="/register"
+              className="px-4 py-1.5 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs tracking-wide shadow-md transition-all hover:scale-105"
+            >
+              Create account
+            </Link>
+          </div>
         </div>
 
         {/* Main Card Container */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-sm mx-auto my-auto relative z-10 shrink-0"
+          className="w-full max-w-sm mx-auto my-auto relative z-10 shrink-0 py-2"
         >
           <div className="bg-white rounded-3xl shadow-2xl shadow-indigo-950/5 border border-slate-100 p-6 sm:p-7">
             
