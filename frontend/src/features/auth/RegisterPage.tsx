@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { signInWithPopup } from 'firebase/auth'
 import { motion } from 'framer-motion'
-import { User, Phone, AlertCircle, CheckCircle, Sparkles, ArrowRight, ShieldCheck } from 'lucide-react'
+import { User, Phone, AlertCircle, CheckCircle } from 'lucide-react'
 import { auth, googleProvider } from '@/lib/firebase'
 import api from '@/lib/api'
 
@@ -55,128 +55,126 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col lg:grid lg:grid-cols-12 font-sans selection:bg-orange-500 selection:text-white relative overflow-x-hidden">
+    <div className="min-h-screen bg-slate-50 flex flex-col lg:grid lg:grid-cols-2 font-sans selection:bg-orange-500 selection:text-white relative overflow-x-hidden">
       
-      {/* ── LEFT HERO BANNER (Desktop: 7 cols) ──────────────────────────────── */}
-      <div className="lg:col-span-7 bg-gradient-to-br from-sky-400 via-indigo-500 to-purple-600 relative overflow-hidden flex flex-col justify-between p-6 sm:p-10 lg:p-12 min-h-[420px] lg:min-h-screen text-white">
+      {/* ── LEFT HERO BANNER (50% Split) ──────────────────────────────── */}
+      <div className="lg:col-span-1 bg-sky-100 relative overflow-hidden flex flex-col justify-between p-6 sm:p-10 lg:p-12 min-h-[480px] lg:min-h-screen">
         
-        {/* Background Artwork Layer */}
+        {/* Crisp Full-Color Background Image */}
         <div 
-          className="absolute inset-0 bg-cover bg-center mix-blend-overlay opacity-40 scale-105 transition-transform duration-1000 hover:scale-100"
+          className="absolute inset-0 bg-cover bg-center transition-transform duration-700 hover:scale-105"
           style={{ backgroundImage: `url('/login-banner.png')` }}
         />
 
-        {/* Ambient Gradient Glows */}
-        <div className="absolute -top-24 -left-24 w-96 h-96 bg-amber-300/30 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-10 right-10 w-96 h-96 bg-pink-500/30 rounded-full blur-3xl pointer-events-none" />
+        {/* Soft Vignette Top/Bottom */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/40 pointer-events-none" />
 
-        {/* Floating Grammar Badges (Animated) */}
+        {/* Floating Grammar Tags */}
         <motion.div 
-          animate={{ y: [0, -10, 0] }} 
-          transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-          className="absolute top-24 right-12 hidden lg:flex items-center gap-2 px-4 py-2 rounded-2xl bg-indigo-600/80 backdrop-blur-md border border-indigo-400/40 text-xs font-bold tracking-wide shadow-lg text-white"
+          animate={{ y: [0, -8, 0] }} 
+          transition={{ repeat: Infinity, duration: 3.5, ease: "easeInOut" }}
+          className="absolute top-20 right-16 hidden lg:flex items-center px-4 py-2 rounded-2xl bg-teal-500 text-white font-black text-xs shadow-lg border-2 border-white/80"
         >
-          <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
           Nouns
         </motion.div>
 
         <motion.div 
-          animate={{ y: [0, 12, 0] }} 
-          transition={{ repeat: Infinity, duration: 5, ease: "easeInOut", delay: 0.5 }}
-          className="absolute top-44 right-32 hidden lg:flex items-center gap-2 px-4 py-2 rounded-2xl bg-pink-500/80 backdrop-blur-md border border-pink-300/40 text-xs font-bold tracking-wide shadow-lg text-white"
+          animate={{ y: [0, 10, 0] }} 
+          transition={{ repeat: Infinity, duration: 4, ease: "easeInOut", delay: 0.3 }}
+          className="absolute top-36 right-8 hidden lg:flex items-center px-4 py-2 rounded-2xl bg-pink-500 text-white font-black text-xs shadow-lg border-2 border-white/80"
         >
           Verbs
         </motion.div>
 
         <motion.div 
-          animate={{ y: [0, -8, 0] }} 
-          transition={{ repeat: Infinity, duration: 4.5, ease: "easeInOut", delay: 1 }}
-          className="absolute top-64 right-16 hidden lg:flex items-center gap-2 px-4 py-2 rounded-2xl bg-teal-500/80 backdrop-blur-md border border-teal-300/40 text-xs font-bold tracking-wide shadow-lg text-white"
+          animate={{ y: [0, -10, 0] }} 
+          transition={{ repeat: Infinity, duration: 4.5, ease: "easeInOut", delay: 0.7 }}
+          className="absolute top-52 right-24 hidden lg:flex items-center px-4 py-2 rounded-2xl bg-purple-600 text-white font-black text-xs shadow-lg border-2 border-white/80"
         >
           Adjectives
+        </motion.div>
+
+        {/* Speech Bubble Badge */}
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="absolute top-48 right-44 hidden xl:flex flex-col items-center p-3 px-4 rounded-3xl bg-white text-slate-900 font-extrabold text-xs shadow-2xl border-2 border-amber-300 max-w-[160px] text-center"
+        >
+          <span className="text-indigo-900">Better Grammar</span>
+          <span className="text-orange-500">Brighter You! ✨</span>
         </motion.div>
 
         {/* Top Header Logo */}
         <div className="relative z-10 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3 group">
-            <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-2xl shadow-inner group-hover:scale-110 transition-transform">
+            <div className="w-12 h-12 rounded-2xl bg-white/90 backdrop-blur-md border border-white/80 flex items-center justify-center text-2xl shadow-md group-hover:scale-110 transition-transform">
               🦊
             </div>
             <div>
-              <span className="font-display font-extrabold text-2xl tracking-tight text-white drop-shadow-sm flex items-center gap-1.5">
+              <span className="font-display font-black text-2xl tracking-tight text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]">
                 GrammoQuest
               </span>
-              <span className="block text-[10px] font-bold uppercase tracking-widest text-amber-300">
+              <span className="block text-[10px] font-black uppercase tracking-widest text-amber-300 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
                 Grammar Adventure
               </span>
             </div>
           </Link>
         </div>
 
-        {/* Middle Main Graphic & Typography */}
-        <div className="relative z-10 my-auto py-8">
-          
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white text-indigo-900 font-extrabold text-xs shadow-xl mb-6 border-2 border-amber-300"
-          >
-            <Sparkles className="w-4 h-4 text-amber-500 fill-amber-400" />
-            <span>Small Steps. Big Brighter Writers! ✨</span>
-          </motion.div>
-
-          <h1 className="font-display font-black text-4xl sm:text-5xl lg:text-6xl tracking-tight leading-[1.1] mb-4 text-white drop-shadow-md">
+        {/* Left Hero Typography */}
+        <div className="relative z-10 my-auto py-6 max-w-lg">
+          <h1 className="font-display font-black text-4xl sm:text-5xl lg:text-6xl tracking-tight leading-[1.05] mb-4 text-white drop-shadow-[0_3px_6px_rgba(0,0,0,0.5)]">
             Start Your <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-orange-300 to-amber-200">
-              Grammar Quest
-            </span>
+            <span className="text-orange-400">Grammar </span>
+            <span className="text-purple-300">Quest!</span>
           </h1>
 
-          <p className="text-sky-100 text-base sm:text-lg font-medium max-w-md mb-8 leading-relaxed">
-            Create your free account today and unlock a fun, rewarding gamified way to master English grammar!
+          <p className="text-white font-bold text-base sm:text-lg mb-8 drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]">
+            Create your free account today and level up!
           </p>
 
-          {/* Game Signpost Planks */}
-          <div className="flex flex-wrap gap-2.5 max-w-lg">
-            <div className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black text-xs uppercase tracking-wider shadow-lg border-b-4 border-orange-700 flex items-center gap-2 transform -rotate-1 hover:rotate-0 transition-transform cursor-default">
-              <span>🟧</span> EXPLORE
+          {/* Wooden Signpost Stack */}
+          <div className="flex flex-col gap-2 max-w-[200px]">
+            <div className="py-2.5 px-5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black text-xs tracking-wider shadow-xl border-b-4 border-orange-700 flex items-center gap-2 transform -rotate-1 hover:rotate-0 transition-transform cursor-default">
+              EXPLORE
             </div>
-            <div className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-sky-500 text-white font-black text-xs uppercase tracking-wider shadow-lg border-b-4 border-blue-700 flex items-center gap-2 transform rotate-1 hover:rotate-0 transition-transform cursor-default">
-              <span>🟦</span> LEARN
+            <div className="py-2.5 px-5 rounded-xl bg-gradient-to-r from-blue-600 to-sky-500 text-white font-black text-xs tracking-wider shadow-xl border-b-4 border-blue-800 flex items-center gap-2 transform rotate-1 hover:rotate-0 transition-transform cursor-default">
+              LEARN
             </div>
-            <div className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 text-white font-black text-xs uppercase tracking-wider shadow-lg border-b-4 border-purple-700 flex items-center gap-2 transform -rotate-1 hover:rotate-0 transition-transform cursor-default">
-              <span>🟪</span> PRACTICE
+            <div className="py-2.5 px-5 rounded-xl bg-gradient-to-r from-pink-600 to-purple-600 text-white font-black text-xs tracking-wider shadow-xl border-b-4 border-purple-800 flex items-center gap-2 transform -rotate-1 hover:rotate-0 transition-transform cursor-default">
+              PRACTICE
             </div>
-            <div className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-black text-xs uppercase tracking-wider shadow-lg border-b-4 border-emerald-700 flex items-center gap-2 transform rotate-1 hover:rotate-0 transition-transform cursor-default">
-              <span>🟩</span> SUCCEED
+            <div className="py-2.5 px-5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black text-xs tracking-wider shadow-xl border-b-4 border-emerald-800 flex items-center gap-2 transform rotate-1 hover:rotate-0 transition-transform cursor-default">
+              SUCCEED
             </div>
           </div>
-
         </div>
 
-        {/* Footer Mascot Quote Stone */}
-        <div className="relative z-10 pt-4 border-t border-white/10 flex items-center justify-between text-xs text-sky-200">
-          <div className="flex items-center gap-2 bg-black/20 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10">
-            <span className="text-base">🪨</span>
-            <span className="font-semibold text-white">"Grammar is your superpower!"</span>
-            <span className="text-amber-300 font-bold">— Grammo</span>
+        {/* Footer Mascot Quote */}
+        <div className="relative z-10 pt-4 flex items-center justify-between text-xs text-white">
+          <div className="flex items-center gap-2 bg-black/40 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/20 shadow-lg">
+            <span>🪨</span>
+            <span className="font-bold text-white">"Grammar is your superpower!"</span>
+            <span className="text-amber-300 font-extrabold">— Grammo</span>
           </div>
-          <span className="hidden sm:inline-block text-sky-200/70 font-medium">GrammoQuest v2.0</span>
+          <span className="hidden sm:inline-block text-white/80 font-bold drop-shadow">v2.0</span>
         </div>
 
       </div>
 
 
-      {/* ── RIGHT FORM SECTION (Desktop: 5 cols) ────────────────────────────────── */}
-      <div className="lg:col-span-5 bg-slate-50 flex flex-col justify-between p-6 sm:p-10 lg:p-12 relative">
+      {/* ── RIGHT FORM SECTION (50% Split with Decorative Pastel Shapes) ──────── */}
+      <div className="lg:col-span-1 bg-slate-50/80 flex flex-col justify-between p-6 sm:p-10 lg:p-12 relative overflow-hidden">
         
-        {/* Soft Decorative Blobs */}
-        <div className="absolute top-10 right-10 w-72 h-72 bg-indigo-100 rounded-full blur-3xl opacity-60 pointer-events-none" />
-        <div className="absolute bottom-10 left-10 w-72 h-72 bg-amber-100 rounded-full blur-3xl opacity-60 pointer-events-none" />
+        {/* Soft Organic Pastel Background Shapes (As seen in design mockup 2) */}
+        <div className="absolute -top-12 -right-12 w-80 h-80 rounded-full bg-orange-100/70 border border-orange-200/40 pointer-events-none blur-sm" />
+        <div className="absolute -bottom-16 -right-16 w-96 h-96 rounded-full bg-purple-100/80 border border-purple-200/40 pointer-events-none blur-sm" />
+        <div className="absolute -bottom-10 -left-16 w-72 h-72 rounded-full bg-teal-100/60 border border-teal-200/30 pointer-events-none blur-sm" />
+        <div className="absolute top-1/3 -left-20 w-64 h-64 rounded-full bg-indigo-100/60 border border-indigo-200/30 pointer-events-none blur-sm" />
 
-        {/* Top Right "Already have an account? Sign In" link bar */}
+        {/* Top Navigation Bar */}
         <div className="flex justify-end items-center gap-3 mb-6 relative z-10">
-          <span className="text-sm font-semibold text-slate-600">Already have an account?</span>
+          <span className="text-xs sm:text-sm font-semibold text-slate-600">Already have an account?</span>
           <Link
             to="/login"
             className="px-5 py-2 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs tracking-wide shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5"
@@ -191,14 +189,15 @@ export default function RegisterPage() {
           animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-md mx-auto my-auto relative z-10"
         >
-          <div className="bg-white rounded-3xl shadow-xl border border-slate-100 p-8 sm:p-10">
+          <div className="bg-white rounded-3xl shadow-2xl shadow-indigo-950/5 border border-slate-100 p-8 sm:p-10">
 
             {step === 'google' && (
               <>
                 <div className="text-center mb-6">
+                  {/* Consistent Fox Mascot Icon 🦊 (No rocket) */}
                   <div className="w-16 h-16 mx-auto rounded-3xl bg-gradient-to-tr from-orange-400 to-amber-300 p-0.5 shadow-lg mb-3">
                     <div className="w-full h-full bg-white rounded-[22px] flex items-center justify-center text-3xl">
-                      🚀
+                      🦊
                     </div>
                   </div>
                   <h1 className="font-display font-extrabold text-2xl sm:text-3xl text-slate-900 tracking-tight">
@@ -257,9 +256,9 @@ export default function RegisterPage() {
             {step === 'profile' && (
               <>
                 <div className="text-center mb-6">
-                  <div className="w-16 h-16 mx-auto rounded-3xl bg-gradient-to-tr from-emerald-400 to-teal-300 p-0.5 shadow-lg mb-3">
+                  <div className="w-16 h-16 mx-auto rounded-3xl bg-gradient-to-tr from-orange-400 to-amber-300 p-0.5 shadow-lg mb-3">
                     <div className="w-full h-full bg-white rounded-[22px] flex items-center justify-center text-3xl">
-                      ✨
+                      🦊
                     </div>
                   </div>
                   <h1 className="font-display font-extrabold text-2xl sm:text-3xl text-slate-900 tracking-tight">
@@ -365,7 +364,7 @@ export default function RegisterPage() {
           </div>
         </motion.div>
 
-        {/* Bottom copyright */}
+        {/* Bottom Copyright */}
         <div className="text-center text-xs text-slate-400 font-medium py-2 relative z-10">
           © {new Date().getFullYear()} GrammoQuest. All rights reserved.
         </div>
@@ -386,4 +385,5 @@ function GoogleIcon() {
     </svg>
   )
 }
+
 
