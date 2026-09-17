@@ -62,7 +62,7 @@ export default function RegisterPage() {
         <img 
           src="/login-banner.png" 
           alt="GrammoQuest Grammar Adventure"
-          className="w-full h-full object-cover object-center transition-transform duration-700 hover:scale-105"
+          className="w-full h-full object-cover object-center"
         />
       </div>
 
