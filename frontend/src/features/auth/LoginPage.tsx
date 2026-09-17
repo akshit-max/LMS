@@ -63,123 +63,16 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen lg:h-screen w-screen max-w-full overflow-x-hidden lg:overflow-hidden bg-slate-50 flex flex-col lg:grid lg:grid-cols-2 font-sans selection:bg-orange-500 selection:text-white relative">
       
-      {/* ── LEFT HERO BANNER (Hidden on Mobile/Tablet < 1024px, 50% Desktop) ──── */}
-      <div className="hidden lg:flex lg:col-span-1 bg-sky-200 relative overflow-hidden flex-col justify-between p-8 h-full select-none">
-        
-        {/* Background Artwork Layer */}
-        <div 
-          className="absolute inset-0 bg-cover bg-center transition-transform duration-700 hover:scale-105"
-          style={{ backgroundImage: `url('/login-banner.png')` }}
+      {/* ── LEFT HERO BANNER (Hidden on Mobile/Tablet < 1024px, 50% Desktop Image) ── */}
+      <div className="hidden lg:block lg:col-span-1 h-full relative overflow-hidden select-none bg-sky-200">
+        <img 
+          src="/login-banner.png" 
+          alt="GrammoQuest Grammar Adventure"
+          className="w-full h-full object-cover object-center transition-transform duration-700 hover:scale-105"
         />
-
-        {/* Soft Contrast Gradients Top & Bottom */}
-        <div className="absolute top-0 inset-x-0 h-40 bg-gradient-to-b from-black/40 via-black/10 to-transparent pointer-events-none" />
-        <div className="absolute bottom-0 inset-x-0 h-32 bg-gradient-to-t from-black/30 via-transparent to-transparent pointer-events-none" />
-
-        {/* Floating Grammar Badges (Positioned cleanly on top-right sky) */}
-        <motion.div 
-          animate={{ y: [0, -6, 0] }} 
-          transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-          className="absolute top-12 right-12 flex items-center px-4 py-1.5 rounded-2xl bg-teal-500 text-white font-black text-xs shadow-xl border-2 border-white"
-        >
-          Nouns
-        </motion.div>
-
-        <motion.div 
-          animate={{ y: [0, 8, 0] }} 
-          transition={{ repeat: Infinity, duration: 4.5, ease: "easeInOut", delay: 0.5 }}
-          className="absolute top-24 right-32 flex items-center px-4 py-1.5 rounded-2xl bg-pink-500 text-white font-black text-xs shadow-xl border-2 border-white"
-        >
-          Verbs
-        </motion.div>
-
-        <motion.div 
-          animate={{ y: [0, -7, 0] }} 
-          transition={{ repeat: Infinity, duration: 5, ease: "easeInOut", delay: 1 }}
-          className="absolute top-36 right-10 flex items-center px-4 py-1.5 rounded-2xl bg-purple-600 text-white font-black text-xs shadow-xl border-2 border-white"
-        >
-          Adjectives
-        </motion.div>
-
-        <motion.div 
-          animate={{ y: [0, 7, 0] }} 
-          transition={{ repeat: Infinity, duration: 4.2, ease: "easeInOut", delay: 1.5 }}
-          className="absolute top-48 right-28 flex items-center px-4 py-1.5 rounded-2xl bg-sky-500 text-white font-black text-xs shadow-xl border-2 border-white"
-        >
-          Adverbs
-        </motion.div>
-
-        {/* Speech Bubble Badge */}
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="absolute top-14 left-56 flex flex-col items-center p-2 px-3.5 rounded-2xl bg-white text-slate-900 font-extrabold text-[11px] shadow-2xl border-2 border-amber-300 text-center"
-        >
-          <span className="text-indigo-950">Better Grammar</span>
-          <span className="text-orange-500">Brighter You! ✨</span>
-        </motion.div>
-
-        {/* Top Header Logo */}
-        <div className="relative z-10 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="w-10 h-10 rounded-2xl bg-white/90 backdrop-blur-md border border-white flex items-center justify-center text-xl shadow-md group-hover:scale-110 transition-transform">
-              🦊
-            </div>
-            <div>
-              <span className="font-display font-black text-xl tracking-tight text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
-                GrammoQuest
-              </span>
-              <span className="block text-[9px] font-black uppercase tracking-widest text-amber-300 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
-                Grammar Adventure
-              </span>
-            </div>
-          </Link>
-        </div>
-
-        {/* Left Hero Typography (NO BOX! Borderless text on open sky) */}
-        <div className="relative z-10 my-auto py-2 max-w-xs">
-          <h1 className="font-display font-black text-3xl xl:text-4xl tracking-tight leading-[1.08] mb-2 text-white drop-shadow-[0_3px_6px_rgba(0,0,0,0.8)]">
-            Small Steps. <br />
-            <span className="text-orange-400">Big </span>
-            <span className="text-purple-300">Brighter </span>
-            <span className="text-sky-200">Writers!</span>
-          </h1>
-
-          <p className="text-white font-black text-xs xl:text-sm mb-4 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
-            Learn grammar. Play. Grow. Shine!
-          </p>
-
-          {/* Wooden Signposts (Placed neatly in bottom left meadow) */}
-          <div className="flex flex-col gap-1.5 max-w-[160px]">
-            <div className="py-1.5 px-3.5 rounded-lg bg-amber-500 text-white font-black text-[10px] tracking-wider shadow-md border-b-2 border-orange-700 transform -rotate-1 hover:rotate-0 transition-transform cursor-default text-center">
-              EXPLORE
-            </div>
-            <div className="py-1.5 px-3.5 rounded-lg bg-blue-600 text-white font-black text-[10px] tracking-wider shadow-md border-b-2 border-blue-800 transform rotate-1 hover:rotate-0 transition-transform cursor-default text-center">
-              LEARN
-            </div>
-            <div className="py-1.5 px-3.5 rounded-lg bg-purple-600 text-white font-black text-[10px] tracking-wider shadow-md border-b-2 border-purple-800 transform -rotate-1 hover:rotate-0 transition-transform cursor-default text-center">
-              PRACTICE
-            </div>
-            <div className="py-1.5 px-3.5 rounded-lg bg-emerald-600 text-white font-black text-[10px] tracking-wider shadow-md border-b-2 border-emerald-800 transform rotate-1 hover:rotate-0 transition-transform cursor-default text-center">
-              SUCCEED
-            </div>
-          </div>
-        </div>
-
-        {/* Footer Mascot Quote */}
-        <div className="relative z-10 pt-2 flex items-center justify-between text-xs text-white">
-          <div className="flex items-center gap-2 bg-black/40 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-white/20 shadow-lg text-[11px]">
-            <span>🪨</span>
-            <span className="font-bold text-white">"Grammar is your superpower!"</span>
-            <span className="text-amber-300 font-black">— Grammo</span>
-          </div>
-          <span className="text-white/80 font-bold text-[11px] drop-shadow">v2.0</span>
-        </div>
-
       </div>
 
-
-      {/* ── RIGHT FORM SECTION (Full Width on Mobile, 50% on Desktop) ──────── */}
+      {/* ── RIGHT FORM SECTION (Full Width on Mobile, 50% Desktop) ──────── */}
       <div className="w-full lg:col-span-1 bg-slate-50/90 flex flex-col justify-between p-4 sm:p-6 lg:p-8 min-h-screen lg:min-h-0 h-full overflow-y-auto lg:overflow-hidden relative">
         
         {/* Soft Organic Pastel Background Shapes */}
@@ -443,5 +336,6 @@ function getFirebaseErrorMessage(code: string): string {
       return 'Sign in failed. Please try again.'
   }
 }
+
 
 
