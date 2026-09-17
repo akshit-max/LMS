@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { signInWithPopup } from 'firebase/auth'
 import { motion } from 'framer-motion'
-import { User, Phone, AlertCircle, CheckCircle } from 'lucide-react'
+import { User, Phone, AlertCircle, CheckCircle, ArrowLeft } from 'lucide-react'
 import { auth, googleProvider } from '@/lib/firebase'
 import api from '@/lib/api'
 
@@ -76,14 +76,17 @@ export default function RegisterPage() {
         <div className="absolute top-1/3 -left-20 w-56 h-56 rounded-full bg-indigo-100/60 border border-indigo-200/30 pointer-events-none blur-sm" />
 
         {/* Top Navigation Bar */}
-        <div className="flex justify-between sm:justify-end items-center gap-3 mb-4 sm:mb-2 relative z-10 shrink-0">
-          <Link to="/" className="lg:hidden flex items-center gap-2">
-            <span className="text-xl">🦊</span>
-            <span className="font-display font-black text-lg text-indigo-950">GrammoQuest</span>
+        <div className="flex justify-between items-center gap-3 mb-4 sm:mb-2 relative z-10 shrink-0">
+          <Link 
+            to="/" 
+            className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/80 hover:bg-white text-slate-700 font-bold text-xs tracking-wide shadow-sm border border-slate-200/80 transition-all hover:scale-105"
+          >
+            <ArrowLeft className="w-3.5 h-3.5 text-indigo-600" />
+            <span>Back to Home</span>
           </Link>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-slate-600">Already have an account?</span>
+            <span className="text-xs font-semibold text-slate-600 hidden sm:inline">Already have an account?</span>
             <Link
               to="/login"
               className="px-4 py-1.5 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs tracking-wide shadow-md transition-all hover:scale-105"

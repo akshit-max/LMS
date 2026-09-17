@@ -20,6 +20,7 @@ export interface ChapterWithStatus {
   id: string
   unitId: string
   title: string
+  description?: string
   order: number
   lessonVideoUrl: string
   pdfUrl: string

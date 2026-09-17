@@ -291,7 +291,7 @@ export default function QuizResultPage() {
 
       {/* Unit Complete Popup — shown after rank-up is dismissed */}
       <AnimatePresence>
-        {result.unitComplete && showUnitCompleteModal && !showRankUpModal && (
+        {result.unitComplete && showUnitCompleteModal && (!result.rankUpTitle || !showRankUpModal) && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

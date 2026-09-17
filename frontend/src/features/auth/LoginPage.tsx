@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { signInWithPopup, signInWithEmailAndPassword } from 'firebase/auth'
 import { motion } from 'framer-motion'
-import { Mail, Lock, LogIn, AlertCircle, Eye, EyeOff, GraduationCap, User } from 'lucide-react'
+import { Mail, Lock, LogIn, AlertCircle, Eye, EyeOff, GraduationCap, User, ArrowLeft } from 'lucide-react'
 import { auth, googleProvider } from '@/lib/firebase'
 import { getDashboardPath } from '@/router/ProtectedRoute'
 import { useAuthStore } from '@/store/authStore'
@@ -82,14 +82,17 @@ export default function LoginPage() {
         <div className="absolute top-1/3 -left-20 w-56 h-56 rounded-full bg-indigo-100/60 border border-indigo-200/30 pointer-events-none blur-sm" />
 
         {/* Top Navigation Bar */}
-        <div className="flex justify-between sm:justify-end items-center gap-3 mb-4 sm:mb-2 relative z-10 shrink-0">
-          <Link to="/" className="lg:hidden flex items-center gap-2">
-            <span className="text-xl">🦊</span>
-            <span className="font-display font-black text-lg text-indigo-950">GrammoQuest</span>
+        <div className="flex justify-between items-center gap-3 mb-4 sm:mb-2 relative z-10 shrink-0">
+          <Link 
+            to="/" 
+            className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/80 hover:bg-white text-slate-700 font-bold text-xs tracking-wide shadow-sm border border-slate-200/80 transition-all hover:scale-105"
+          >
+            <ArrowLeft className="w-3.5 h-3.5 text-indigo-600" />
+            <span>Back to Home</span>
           </Link>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-slate-600">New here?</span>
+            <span className="text-xs font-semibold text-slate-600 hidden sm:inline">New here?</span>
             <Link
               to="/register"
               className="px-4 py-1.5 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs tracking-wide shadow-md transition-all hover:scale-105"
@@ -172,8 +175,8 @@ export default function LoginPage() {
                   <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
                     Email
                   </label>
-                  <div className="relative rounded-xl bg-slate-50 border border-slate-200 focus-within:border-indigo-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-100 transition-all">
-                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <div className="relative">
+                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 z-10 pointer-events-none" />
                     <input
                       id="login-email"
                       type="email"
@@ -181,7 +184,7 @@ export default function LoginPage() {
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="you@school.edu"
                       required
-                      className="w-full bg-transparent py-2.5 pl-10 pr-3 text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none"
+                      className="w-full rounded-xl bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100 py-2.5 pl-10 pr-3 text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none transition-all shadow-sm"
                     />
                   </div>
                 </div>
@@ -195,8 +198,8 @@ export default function LoginPage() {
                       Forgot password?
                     </span>
                   </div>
-                  <div className="relative rounded-xl bg-slate-50 border border-slate-200 focus-within:border-indigo-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-100 transition-all">
-                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <div className="relative">
+                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 z-10 pointer-events-none" />
                     <input
                       id="login-password"
                       type={showPassword ? "text" : "password"}
@@ -204,12 +207,12 @@ export default function LoginPage() {
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
                       required
-                      className="w-full bg-transparent py-2.5 pl-10 pr-10 text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none"
+                      className="w-full rounded-xl bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100 py-2.5 pl-10 pr-10 text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none transition-all shadow-sm"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 z-10"
                     >
                       {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                     </button>
