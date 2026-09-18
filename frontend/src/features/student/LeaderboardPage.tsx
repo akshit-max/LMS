@@ -1,14 +1,14 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { 
-  ArrowLeft, 
-  Trophy, 
-  Zap, 
-  Star, 
-  Flame, 
-  ChevronDown, 
-  LogOut, 
-  BarChart2, 
+import {
+  ArrowLeft,
+  Trophy,
+  Zap,
+  Star,
+  Flame,
+  ChevronDown,
+  LogOut,
+  BarChart2,
   Crown,
   Medal,
   Award
@@ -70,13 +70,13 @@ export default function LeaderboardPage() {
 
   return (
     <div className="min-h-screen bg-[#f4f7fc] text-slate-800 font-sans flex flex-col selection:bg-orange-500 selection:text-white w-full">
-      
+
       {/* ── 1. TOP HEADER BAR ────────────────────────────────────────────────── */}
       <header className="bg-white/90 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-30 shadow-xs w-full">
         <div className="w-full px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
-          
+
           {/* Back to Home Button */}
-          <button 
+          <button
             onClick={() => navigate('/dashboard')}
             className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-slate-100/90 hover:bg-slate-200/80 text-slate-700 font-extrabold text-xs transition-all border border-slate-200/70 shadow-xs group"
           >
@@ -178,7 +178,7 @@ export default function LeaderboardPage() {
 
       {/* ── 2. HERO LANDSCAPE & MAIN CONTENT CONTAINER ──────────────────────── */}
       <div className="w-full flex-1 relative overflow-hidden bg-gradient-to-b from-[#87ceeb] via-[#b0e0e6] via-50% to-[#f4f7fc] p-4 sm:p-6 lg:p-8">
-        
+
         {/* Sky Clouds Backdrop */}
         <div className="absolute inset-0 pointer-events-none opacity-60">
           <svg className="w-full h-full" viewBox="0 0 1440 600" fill="none" preserveAspectRatio="none">
@@ -194,7 +194,7 @@ export default function LeaderboardPage() {
         </div>
 
         <div className="w-full max-w-[1550px] mx-auto relative z-10 space-y-6">
-          
+
           {/* Header Title Row */}
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 bg-white/60 backdrop-blur-md p-6 sm:p-7 rounded-3xl border-2 border-white/80 shadow-md">
             <div className="space-y-2 max-w-3xl">
@@ -231,11 +231,11 @@ export default function LeaderboardPage() {
 
           {/* 3-Column Adventure Layout */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            
+
             {/* Left Mascot & Carved Stone Column (3 cols) */}
             <div className="hidden lg:flex flex-col items-center justify-center lg:col-span-3 space-y-4 pt-2">
               <div className="w-full bg-white/90 backdrop-blur-md rounded-3xl p-6 border-2 border-white shadow-xl text-center space-y-4">
-                
+
                 {/* Fox Mascot Artwork Circle */}
                 <div className="relative group">
                   <div className="w-40 h-40 rounded-3xl bg-gradient-to-tr from-amber-400 via-orange-400 to-amber-500 p-1.5 shadow-2xl border-4 border-white mx-auto flex items-center justify-center text-8xl group-hover:scale-105 transition-transform duration-300 relative overflow-hidden">
@@ -264,20 +264,19 @@ export default function LeaderboardPage() {
 
             {/* Center Leaderboard Card Column (6 cols) */}
             <div className="lg:col-span-6 space-y-4">
-              
+
               <div className="bg-white/95 backdrop-blur-md rounded-3xl p-6 sm:p-8 shadow-2xl border-2 border-slate-100 space-y-6">
-                
+
                 {/* Period Filter Switcher Buttons */}
                 <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
                   {(['alltime', 'weekly', 'monthly'] as const).map(p => (
                     <button
                       key={p}
                       onClick={() => setPeriod(p)}
-                      className={`flex-1 py-2.5 rounded-xl text-xs font-black transition-all capitalize ${
-                        period === p
+                      className={`flex-1 py-2.5 rounded-xl text-xs font-black transition-all capitalize ${period === p
                           ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-md'
                           : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
-                      }`}
+                        }`}
                     >
                       {p === 'alltime' ? 'All Time' : p.charAt(0).toUpperCase() + p.slice(1)}
                     </button>
@@ -393,11 +392,10 @@ function PodiumCard({ entry, medal, rank, tall = false }: { entry: LeaderboardEn
 
 function EntryRow({ entry, highlight = false }: { entry: LeaderboardEntry; highlight?: boolean }) {
   return (
-    <div className={`flex items-center gap-3 px-4 py-3 rounded-2xl border-2 transition-all ${
-      entry.isCurrentUser || highlight
+    <div className={`flex items-center gap-3 px-4 py-3 rounded-2xl border-2 transition-all ${entry.isCurrentUser || highlight
         ? 'bg-amber-50/90 border-amber-300 shadow-md'
         : 'bg-white border-slate-200/80 hover:border-slate-300'
-    }`}>
+      }`}>
       <span className="text-slate-400 font-black text-xs w-6 text-center shrink-0">
         #{entry.rank}
       </span>
@@ -429,4 +427,3 @@ function EntryRow({ entry, highlight = false }: { entry: LeaderboardEntry; highl
     </div>
   )
 }
-

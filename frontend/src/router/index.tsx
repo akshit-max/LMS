@@ -40,8 +40,18 @@ const AdminDashboard = lazy(() => import('@/features/admin/AdminDashboard'))
 
 function PageLoader() {
   return (
-    <div className="min-h-dvh flex items-center justify-center bg-surface-950">
-      <div className="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+    <div className="min-h-screen w-full flex items-center justify-center bg-white font-sans selection:bg-orange-500 selection:text-white p-4">
+      <div className="flex flex-col items-center gap-4 text-center">
+        <div className="relative w-16 h-16 flex items-center justify-center">
+          <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-orange-500 border-r-amber-400 border-b-orange-600 animate-spin" />
+          <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-amber-400 to-orange-500 flex items-center justify-center text-2xl shadow-md border-2 border-white relative z-10">
+            🦊
+          </div>
+        </div>
+        <p className="text-slate-900 text-xs font-black uppercase tracking-widest bg-orange-50 border border-orange-200 px-4 py-1.5 rounded-full shadow-2xs">
+          Loading GrammoQuest...
+        </p>
+      </div>
     </div>
   )
 }

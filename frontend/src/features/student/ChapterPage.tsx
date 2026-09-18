@@ -370,17 +370,34 @@ export default function ChapterPage() {
                 </p>
               </div>
 
-              {/* Secondary Blue Pill Button */}
+              {/* Clean High-Contrast Practice Arena Button */}
               {chapter.quizId && (
                 <RouterLink
                   to={`/practice/${chapter.quizId}`}
-                  className="flex items-center justify-between px-4 py-3 rounded-2xl bg-sky-50/80 border border-sky-200/80 hover:bg-sky-100/80 transition-colors group text-xs font-black text-sky-700"
+                  className="w-full p-4 rounded-2xl bg-indigo-50/90 border-2 border-indigo-200 hover:bg-indigo-100/90 hover:border-indigo-300 transition-all flex items-center justify-between group shadow-2xs cursor-pointer"
                 >
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-sky-500" />
-                    <span>Practice (no ranking, no XP)</span>
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-[#5865f2] to-purple-600 text-white flex items-center justify-center text-2xl shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+                      🎯
+                    </div>
+                    <div className="text-left">
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-display font-black text-sm sm:text-base text-slate-900 group-hover:text-[#5865f2] transition-colors">
+                          Practice Arena
+                        </h4>
+                        <span className="text-[10px] font-black uppercase tracking-widest bg-indigo-200/80 text-indigo-900 px-2.5 py-0.5 rounded-full border border-indigo-300/80">
+                          No Penalty
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 font-bold mt-0.5">
+                        Practice without pressure &bull; Unlimited time &bull; No countdowns
+                      </p>
+                    </div>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-sky-400 group-hover:translate-x-0.5 transition-transform" />
+                  <div className="px-4 py-2 bg-[#5865f2] group-hover:bg-indigo-700 text-white font-black text-xs rounded-xl transition-all shadow-xs shrink-0 flex items-center gap-1.5">
+                    <span>Practice Now</span>
+                    <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </div>
                 </RouterLink>
               )}
 

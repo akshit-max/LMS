@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, Link as RouterLink } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X } from 'lucide-react'
+import { X, ArrowRight, Sparkles, Check, Lightbulb, Clock, Infinity as InfinityIcon, BookOpen } from 'lucide-react'
 import {
   usePracticeSessionStore,
   usePracticeCurrentQuestion,
@@ -12,13 +12,11 @@ import api from '@/lib/api'
 import type { PracticeResult } from '@/store/practiceSessionStore'
 import type { QuestionPublic } from '@/types'
 
-// CRITICAL: Submits to /practice/attempts/:id/submit — NOT the mastery endpoint.
-// This page must never use useSubmitAttempt() from useQuiz.ts.
 export default function PracticePlayPage() {
   const { quizId } = useParams<{ quizId: string }>()
   const navigate = useNavigate()
 
-  const { attemptId, answers, status, recordAnswer, nextQuestion, setResult, setStatus, questions } =
+  const { attemptId, status, recordAnswer, nextQuestion, setResult, setStatus } =
     usePracticeSessionStore()
   const currentQuestion = usePracticeCurrentQuestion()
   const progress = usePracticeProgress()
@@ -47,9 +45,8 @@ export default function PracticePlayPage() {
   }, [currentQuestion?.id])
 
   // Submit mutation — practice endpoint only
-  const { mutate: submitPractice, isPending: isSubmitting } = useMutation({
+  const { mutate: submitPractice } = useMutation({
     mutationFn: async () => {
-      // Read the latest state from the store directly to avoid closure staleness
       const latestAnswers = usePracticeSessionStore.getState().answers
       const res = await api.post<PracticeResult>(`/practice/attempts/${attemptId}/submit`, {
         answers: latestAnswers,
@@ -63,7 +60,6 @@ export default function PracticePlayPage() {
   })
 
   const handleOptionClick = useCallback((answer: string) => {
-    // Just update the local selection state. Don't record or advance yet.
     setSelected(answer)
   }, [])
 
@@ -83,130 +79,352 @@ export default function PracticePlayPage() {
 
   if (!currentQuestion || status === 'submitting') {
     return (
-      <div className="min-h-screen w-full flex items-center justify-center bg-white font-sans p-4">
+      <div className="min-h-screen w-full flex items-center justify-center bg-[#fffef7] font-sans p-4 relative overflow-hidden">
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat z-0"
+          style={{ backgroundImage: `url('/quiz_intro_bg_clean.jpg')` }}
+        >
+          <div className="absolute inset-0 bg-slate-900/20 backdrop-blur-[2px]" />
+        </div>
+
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="flex flex-col items-center gap-4 text-center"
+          className="relative z-10 bg-white/95 backdrop-blur-xl rounded-3xl p-8 border-4 border-purple-200 shadow-2xl flex flex-col items-center gap-5 text-center max-w-sm w-full"
         >
-          <div className="relative w-16 h-16 flex items-center justify-center">
+          <div className="relative w-20 h-20 flex items-center justify-center">
             <motion.div
-              className="absolute inset-0 rounded-full border-3 border-transparent border-t-sky-500 border-r-indigo-500 border-b-purple-500"
+              className="absolute inset-0 rounded-full border-4 border-transparent border-t-purple-500 border-r-indigo-500 border-b-sky-500"
               animate={{ rotate: 360 }}
               transition={{ duration: 1.2, repeat: Infinity, ease: 'linear' }}
             />
-            <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-sky-400 to-indigo-500 flex items-center justify-center text-2xl shadow-md border-2 border-white relative z-10">
+            <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-purple-500 via-indigo-500 to-sky-400 flex items-center justify-center text-3xl shadow-md border-2 border-white relative z-10">
               🎯
             </div>
           </div>
-          <p className="text-slate-900 text-xs font-black uppercase tracking-widest bg-sky-50 border border-sky-200 px-4 py-1.5 rounded-full shadow-2xs">
-            Loading Practice Arena...
-          </p>
+          <div>
+            <p className="text-slate-900 font-display font-black text-lg tracking-tight">
+              Calculating Results...
+            </p>
+            <p className="text-xs font-bold text-slate-500 mt-1">
+              Great practice session! Wrapping up...
+            </p>
+          </div>
         </motion.div>
       </div>
     )
   }
 
-  return (
-    <div className="min-h-dvh bg-surface-950 flex flex-col">
-      {/* Header — no timer for practice */}
-      <header className="flex items-center gap-3 px-4 py-3 border-b border-zinc-800/60 sticky top-0 bg-surface-950/80 backdrop-blur-sm z-10">
-        <button
-          onClick={() => navigate(`/practice/${quizId}`, { replace: true })}
-          className="p-1.5 rounded-xl hover:bg-zinc-800 transition-colors"
-        >
-          <X size={18} className="text-zinc-400" />
-        </button>
+  const stepPct = Math.min(((progress.current + 1) / progress.total) * 100, 100)
 
-        {/* Progress bar */}
-        <div className="flex-1 h-2 bg-zinc-800 rounded-full overflow-hidden">
-          <motion.div
-            className="h-full bg-gradient-to-r from-primary-500 to-accent-500 rounded-full"
-            animate={{ width: `${(progress.current / progress.total) * 100}%` }}
-            transition={{ duration: 0.3 }}
-          />
+  return (
+    <div className="min-h-screen w-full relative flex flex-col font-sans selection:bg-[#5865f2] selection:text-white bg-[#0e1626] overflow-x-hidden">
+      
+      {/* ── 1. BACKGROUND ARTWORK ─────────────────────────────────────────── */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat z-0"
+        style={{ backgroundImage: `url('/quiz_intro_bg_clean.jpg')` }}
+      >
+        <div className="absolute inset-0 bg-slate-900/15 backdrop-blur-[0.5px]" />
+      </div>
+
+      {/* ── 2. TOP NAVBAR ─────────────────────────────────────────────────── */}
+      <header className="bg-white/95 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-40 shadow-xs w-full">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+          
+          {/* Exit Button */}
+          <button 
+            onClick={() => navigate(`/practice/${quizId}`, { replace: true })}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-white/90 hover:bg-white text-slate-700 font-black text-xs transition-all border border-slate-200 shadow-2xs cursor-pointer active:scale-95"
+          >
+            <X className="w-4 h-4 text-slate-500" />
+            <span>Exit Practice</span>
+          </button>
+
+          {/* GrammoQuest Logo */}
+          <RouterLink to="/dashboard" className="flex items-center gap-2.5 group">
+            <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-amber-500 via-orange-500 to-purple-600 p-0.5 shadow-md group-hover:scale-105 transition-transform shrink-0 flex items-center justify-center text-xl">
+              🦊
+            </div>
+            <div className="hidden sm:block text-left">
+              <span className="font-display font-black text-base text-slate-900 tracking-tight leading-none block">
+                GrammoQuest
+              </span>
+              <span className="text-[9px] font-black uppercase tracking-widest text-[#5865f2] block mt-0.5">
+                CASUAL PRACTICE
+              </span>
+            </div>
+          </RouterLink>
+
+          {/* Right Untimed Badge */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-black px-3.5 py-1.5 rounded-full bg-purple-50/90 border border-purple-200 text-purple-700 flex items-center gap-1.5 shadow-2xs">
+              <Sparkles className="w-3.5 h-3.5 text-purple-500" /> Untimed
+            </span>
+          </div>
+
         </div>
 
-        <span className="text-zinc-500 text-xs font-medium shrink-0">
-          {progress.current}/{progress.total}
-        </span>
+        {/* Stepper Progress Bar with Fox Mascot Pointer */}
+        <div className="w-full bg-white/90 border-t border-slate-200/60 py-2 px-4">
+          <div className="max-w-md mx-auto relative flex flex-col gap-1">
+            <div className="flex items-center justify-between text-[11px] font-black text-slate-600">
+              <span className="flex items-center gap-1.5">
+                <span className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[10px] font-black">🦊</span>
+                Question {progress.current + 1} of {progress.total}
+              </span>
+              <span className="text-[#5865f2] uppercase tracking-wider flex items-center gap-1">
+                <span>🎯</span> PRACTICE ARENA
+              </span>
+            </div>
+            
+            <div className="h-2.5 w-full bg-slate-200/80 rounded-full relative overflow-visible p-0.5 border border-slate-300/80">
+              {/* Fox Mascot Pointer riding along progress bar */}
+              <motion.div
+                className="absolute -top-[15px] z-20 flex flex-col items-center"
+                animate={{ left: `calc(${stepPct}% - 12px)` }}
+                transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+              >
+                <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-amber-500 to-purple-600 p-0.5 shadow-md flex items-center justify-center text-xs border border-white">
+                  🦊
+                </div>
+              </motion.div>
 
-        <span className="text-xs text-primary-400 font-bold shrink-0">🎯 Practice</span>
+              <motion.div 
+                className="h-full bg-gradient-to-r from-amber-500 via-orange-500 to-purple-600 rounded-full"
+                animate={{ width: `${stepPct}%` }}
+                transition={{ duration: 0.3 }}
+              />
+            </div>
+          </div>
+        </div>
       </header>
 
-      {/* Question */}
-      <main className="flex-1 flex flex-col items-center px-4 pt-8 pb-6 max-w-lg mx-auto w-full">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentQuestion.id}
-            initial={{ opacity: 0, x: 30 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -30 }}
-            transition={{ duration: 0.2 }}
-            className="w-full"
-          >
-            <p className="text-zinc-400 text-xs font-medium mb-2 uppercase tracking-wider">
-              Q{progress.index + 1}
-            </p>
-            <h2 className="font-display font-bold text-white text-lg leading-snug mb-6">
-              {currentQuestion.text}
-            </h2>
+      {/* ── 3. MAIN GAME ARENA (3-COLUMN DESKTOP LAYOUT) ────────────────────── */}
+      <main className="flex-1 relative z-20 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex items-center justify-center">
+        
+        <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+          
+          {/* ── LEFT DESKTOP WIDGETS & MASCOT (3 cols) ───────────────── */}
+          <div className="hidden lg:flex lg:col-span-3 flex-col items-start space-y-6">
+            
+            {/* Wooden Signpost */}
+            <div className="w-48 bg-[#d97706]/90 backdrop-blur-xs border-4 border-[#78350f] rounded-2xl p-3 shadow-xl transform -rotate-2 relative overflow-hidden">
+              <div className="bg-[#fef3c7] py-2 px-3 rounded-xl border-2 border-[#b45309] text-center shadow-xs">
+                <p className="font-display font-black text-amber-950 text-xs uppercase tracking-wide leading-snug">
+                  Small Steps<br/>Big Progress! 💖
+                </p>
+              </div>
+            </div>
 
-            {/* Question type renderers — reused from mastery quiz */}
-            <PracticeQuestionRenderer
-              question={currentQuestion}
-              selected={selected}
-              matchLeft={matchLeft}
-              matchPairs={matchPairs}
-              reorderItems={reorderItems}
-              onSelect={handleOptionClick}
-              onMatchSelect={(side, val) => {
-                if (side === 'left') {
-                  if (matchPairs[val]) {
-                    setMatchPairs(p => { const n = { ...p }; delete n[val]; return n })
-                  } else {
-                    setMatchLeft(l => l === val ? null : val)
-                  }
-                } else if (matchLeft) {
-                  const newPairs = { ...matchPairs, [matchLeft]: val }
-                  setMatchPairs(newPairs)
-                  setMatchLeft(null)
-                  // Let them confirm manually instead of auto-submitting
-                  const leftCount = Math.floor((currentQuestion.options?.length ?? 0) / 2)
-                  if (Object.keys(newPairs).length === leftCount) {
-                    const canonical = Object.keys(newPairs).sort().map(l => `${l}→${newPairs[l]}`).join('|')
-                    handleOptionClick(canonical)
-                  }
-                }
-              }}
-              onReorderChange={(items) => setReorderItems(items)}
-              onReorderSubmit={() => handleOptionClick(reorderItems.join('|'))}
-              disabled={false} // never disabled, allow switching
-            />
+            {/* Fox Mascot & Speech Bubble */}
+            <div className="relative flex flex-col items-start space-y-2">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                className="bg-white/95 backdrop-blur-md rounded-2xl p-3.5 border-2 border-purple-300 shadow-xl text-slate-800 text-xs font-black text-center relative max-w-[200px] leading-snug"
+              >
+                <span>You've got this!<br/><span className="text-purple-600">Pick the best answer!</span></span>
+                <div className="w-3 h-3 bg-white border-b-2 border-r-2 border-purple-300 rotate-45 absolute -bottom-1.5 left-8" />
+              </motion.div>
 
-            {/* Next button (shown after an answer is selected) */}
-            <AnimatePresence>
-              {selected !== null && (
-                <motion.div
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-6"
-                >
-                  <button onClick={handleConfirmAndNext} className="btn-game w-full text-base py-3.5">
-                    {progress.current >= progress.total - 1 ? 'Submit Practice →' : 'Next Question →'}
-                  </button>
-                </motion.div>
-              )}
+              <div className="text-7xl filter drop-shadow-xl animate-bounce" style={{ animationDuration: '3s' }}>
+                🦊
+              </div>
+            </div>
+
+            {/* Stack of Colorful Books */}
+            <div className="w-52 space-y-1 transform rotate-1">
+              <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white font-black text-xs px-3 py-1.5 rounded-lg border-b-2 border-indigo-950 shadow-xs">
+                PRACTICE
+              </div>
+              <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white font-black text-xs px-3 py-1.5 rounded-lg border-b-2 border-purple-950 shadow-xs">
+                LEARN
+              </div>
+              <div className="bg-gradient-to-r from-emerald-600 to-teal-700 text-white font-black text-xs px-3 py-1.5 rounded-lg border-b-2 border-teal-950 shadow-xs">
+                IMPROVE
+              </div>
+              <div className="bg-gradient-to-r from-orange-500 to-amber-600 text-white font-black text-xs px-3 py-1.5 rounded-lg border-b-2 border-amber-950 shadow-xs">
+                GROW
+              </div>
+            </div>
+
+          </div>
+
+          {/* ── CENTER PARCHMENT CARD & QUESTION (6 cols) ────────────── */}
+          <div className="lg:col-span-6 w-full max-w-xl mx-auto flex flex-col items-center space-y-4">
+            
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentQuestion.id}
+                initial={{ opacity: 0, scale: 0.96, y: 15 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.96, y: -15 }}
+                transition={{ duration: 0.25 }}
+                className="w-full bg-[#fffef9] rounded-[36px] p-6 sm:p-8 border-4 border-[#e8d5b7] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.4)] relative overflow-visible text-left space-y-6"
+              >
+                {/* Inner Parchment Border Line */}
+                <div className="absolute inset-2.5 rounded-[28px] border-2 border-dashed border-[#d9b276]/40 pointer-events-none" />
+
+                {/* Corner Scroll Accents */}
+                <div className="absolute top-4 left-4 text-[#d9b276]/60 text-xs font-serif select-none pointer-events-none">╔</div>
+                <div className="absolute top-4 right-4 text-[#d9b276]/60 text-xs font-serif select-none pointer-events-none">╗</div>
+                <div className="absolute bottom-4 left-4 text-[#d9b276]/60 text-xs font-serif select-none pointer-events-none">╚</div>
+                <div className="absolute bottom-4 right-4 text-[#d9b276]/60 text-xs font-serif select-none pointer-events-none">╝</div>
+
+                {/* Top Card Header */}
+                <div className="flex items-center justify-between relative z-10">
+                  <span className="px-3.5 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-[#5865f2] font-black text-xs uppercase tracking-widest shadow-2xs">
+                    QUESTION {progress.current + 1}
+                  </span>
+                  <span className="text-xs font-extrabold text-slate-500">
+                    No Ranking Penalty
+                  </span>
+                </div>
+
+                {/* Question Prompt */}
+                <h2 className="font-display font-black text-xl sm:text-2xl text-slate-900 tracking-tight leading-snug relative z-10">
+                  {currentQuestion.text}
+                </h2>
+
+                {/* Question Options */}
+                <div className="relative z-10">
+                  <PracticeQuestionRenderer
+                    question={currentQuestion}
+                    selected={selected}
+                    matchLeft={matchLeft}
+                    matchPairs={matchPairs}
+                    reorderItems={reorderItems}
+                    onSelect={handleOptionClick}
+                    onMatchSelect={(side, val) => {
+                      if (side === 'left') {
+                        if (matchPairs[val]) {
+                          setMatchPairs(p => { const n = { ...p }; delete n[val]; return n })
+                        } else {
+                          setMatchLeft(l => l === val ? null : val)
+                        }
+                      } else if (matchLeft) {
+                        const newPairs = { ...matchPairs, [matchLeft]: val }
+                        setMatchPairs(newPairs)
+                        setMatchLeft(null)
+                        const leftCount = Math.floor((currentQuestion.options?.length ?? 0) / 2)
+                        if (Object.keys(newPairs).length === leftCount) {
+                          const canonical = Object.keys(newPairs).sort().map(l => `${l}→${newPairs[l]}`).join('|')
+                          handleOptionClick(canonical)
+                        }
+                      }
+                    }}
+                    onReorderChange={(items) => setReorderItems(items)}
+                    onReorderSubmit={() => handleOptionClick(reorderItems.join('|'))}
+                    disabled={false}
+                  />
+                </div>
+
+                {/* Action CTA Button */}
+                <div className="pt-2 relative z-10">
+                  {selected === null ? (
+                    <button
+                      disabled
+                      className="w-full py-4 px-6 rounded-2xl font-display font-black text-base sm:text-lg tracking-wide bg-slate-200 text-slate-500 flex items-center justify-center gap-2 cursor-not-allowed border-2 border-slate-300"
+                    >
+                      <span>Select an answer to continue</span>
+                      <ArrowRight className="w-5 h-5 opacity-60" />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleConfirmAndNext}
+                      className="w-full py-4 px-6 rounded-2xl font-display font-black text-base sm:text-lg tracking-wide bg-gradient-to-r from-amber-500 via-orange-500 to-purple-600 hover:brightness-110 text-white shadow-xl shadow-orange-500/25 transition-all flex items-center justify-center gap-2.5 border-b-4 border-purple-800 active:translate-y-[2px] cursor-pointer"
+                    >
+                      <span>{progress.current >= progress.total - 1 ? 'Submit Practice Session' : 'Confirm & Next'}</span>
+                      <ArrowRight className="w-5 h-5 stroke-[3]" />
+                    </button>
+                  )}
+                </div>
+
+              </motion.div>
             </AnimatePresence>
-          </motion.div>
-        </AnimatePresence>
+
+            {/* Bottom Motivation Pill */}
+            <div className="bg-white/95 backdrop-blur-md rounded-full px-5 py-2 border border-purple-200 shadow-md text-xs font-black text-slate-700 flex items-center justify-center gap-2 max-w-md w-full">
+              <span className="text-amber-500">⭐</span>
+              <span>Great learners practice, and practice makes progress!</span>
+              <span className="text-purple-500">✨</span>
+            </div>
+
+          </div>
+
+          {/* ── RIGHT DESKTOP WIDGETS (3 cols) ───────────────────────── */}
+          <div className="hidden lg:flex lg:col-span-3 flex-col space-y-4">
+            
+            {/* Widget 1: Wooden Header Timer Box */}
+            <div className="w-full bg-[#fef3c7] border-2 border-amber-500 p-3.5 rounded-2xl shadow-md flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-purple-600 text-white flex items-center justify-center text-lg shrink-0 shadow-xs">
+                  <Clock className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="font-display font-black text-xs text-amber-950">Take your time!</p>
+                  <p className="text-[10px] font-bold text-amber-800">Practice mode - no timer</p>
+                </div>
+              </div>
+              <div className="w-8 h-8 rounded-full bg-white border border-purple-200 flex items-center justify-center text-purple-600 shrink-0 font-bold">
+                <InfinityIcon className="w-4 h-4" />
+              </div>
+            </div>
+
+            {/* Widget 2: Hint Card */}
+            <div className="bg-white/95 backdrop-blur-md rounded-2xl p-4 border-2 border-sky-200 shadow-md space-y-2 text-left">
+              <div className="flex items-center gap-2 text-sky-700">
+                <Lightbulb className="w-4 h-4 text-amber-500 fill-amber-400" />
+                <span className="font-display font-black text-xs uppercase tracking-wider">Hint</span>
+              </div>
+              <p className="text-xs font-bold text-slate-600 leading-relaxed">
+                Look carefully at the sentence structure and choose the grammatically correct option.
+              </p>
+            </div>
+
+            {/* Widget 3: Grammo Mascot Quote */}
+            <div className="bg-white/95 backdrop-blur-md rounded-2xl p-3.5 border-2 border-purple-200 shadow-md flex items-center justify-between gap-3 text-left">
+              <p className="text-[11px] font-black text-purple-900 leading-snug">
+                “Practice today, brighter tomorrow!!”
+                <span className="block font-bold text-slate-500 text-[10px] mt-0.5">&mdash; Grammo 🦊</span>
+              </p>
+              <span className="text-2xl">❝</span>
+            </div>
+
+            {/* Widget 4: Progress Card */}
+            <div className="bg-white/95 backdrop-blur-md rounded-2xl p-4 border-2 border-slate-200 shadow-md space-y-2 text-left">
+              <div className="flex items-center justify-between text-xs font-black text-slate-800">
+                <span>Your Progress</span>
+                <span className="text-purple-600">{progress.current + 1} of {progress.total}</span>
+              </div>
+              <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden border border-slate-200">
+                <div 
+                  className="h-full bg-gradient-to-r from-amber-500 to-purple-600 rounded-full" 
+                  style={{ width: `${stepPct}%` }} 
+                />
+              </div>
+            </div>
+
+            {/* Bottom Wooden Banner */}
+            <div className="bg-[#fef3c7] border-2 border-amber-600 rounded-2xl p-3 text-center shadow-md">
+              <p className="font-handwriting font-bold text-xs text-amber-950 leading-snug flex items-center justify-center gap-1">
+                <span>Better Grammar Brighter You!</span>
+                <span>🐾</span>
+              </p>
+            </div>
+
+          </div>
+
+        </div>
+
       </main>
+
     </div>
   )
 }
 
-// ─── Practice Question Renderer ───────────────────────────────────────────────
-// Reuses the same UI patterns as mastery QuizPage but fully self-contained.
+// ─── Practice Question Renderer (Matches Screenshot 2 Option Styling) ───────
 
 function PracticeQuestionRenderer({
   question, selected, matchLeft, matchPairs, reorderItems,
@@ -224,43 +442,67 @@ function PracticeQuestionRenderer({
   disabled: boolean
 }) {
   const { type } = question
+  const letters = ['A', 'B', 'C', 'D', 'E', 'F']
 
   if (type === 'mcq' || type === 'true_false' || type === 'fill_blank') {
     return (
-      <div className="space-y-3">
-        {question.options?.map((opt) => (
-          <button
-            key={opt}
-            disabled={disabled}
-            onClick={() => onSelect(opt)}
-            className={`w-full text-left px-4 py-3.5 rounded-2xl border transition-all font-medium text-sm
-              ${selected === opt
-                ? 'border-primary-500 bg-primary-500/15 text-white'
-                : 'border-zinc-700/60 bg-zinc-800/40 text-zinc-300 hover:border-zinc-600 hover:bg-zinc-800/60'
-              } ${disabled && selected !== opt ? 'opacity-50' : ''}`}
-          >
-            {opt}
-          </button>
-        ))}
+      <div className="space-y-3 pt-1">
+        {question.options?.map((opt, idx) => {
+          const isSelected = selected === opt
+          const letter = letters[idx % letters.length]
+
+          return (
+            <button
+              key={opt}
+              disabled={disabled}
+              onClick={() => onSelect(opt)}
+              className={`w-full text-left px-4.5 py-3.5 rounded-2xl border-2 transition-all font-display font-bold text-sm sm:text-base flex items-center justify-between group cursor-pointer shadow-2xs ${
+                isSelected
+                  ? 'border-[#5865f2] bg-indigo-50/90 text-[#5865f2] shadow-md ring-2 ring-indigo-200'
+                  : 'border-slate-200/90 bg-white text-slate-800 hover:border-indigo-300 hover:bg-slate-50'
+              }`}
+            >
+              <div className="flex items-center gap-3.5">
+                <span className={`w-8 h-8 rounded-xl font-black text-xs flex items-center justify-center transition-colors shrink-0 ${
+                  isSelected ? 'bg-[#5865f2] text-white' : 'bg-slate-100 text-slate-600 group-hover:bg-indigo-100 group-hover:text-[#5865f2]'
+                }`}>
+                  {letter}
+                </span>
+                <span>{opt}</span>
+              </div>
+
+              {isSelected && (
+                <div className="w-6 h-6 rounded-full bg-[#5865f2] text-white flex items-center justify-center shrink-0">
+                  <Check className="w-4 h-4 stroke-[3]" />
+                </div>
+              )}
+            </button>
+          )
+        })}
       </div>
     )
   }
 
   if (type === 'odd_one_out') {
     return (
-      <div className="grid grid-cols-2 gap-3">
-        {question.options?.map((opt) => (
-          <button
-            key={opt}
-            disabled={disabled}
-            onClick={() => onSelect(opt)}
-            className={`px-4 py-3 rounded-2xl border text-center transition-all font-medium text-sm
-              ${selected === opt ? 'border-red-500 bg-red-500/10 text-red-300' : 'border-zinc-700 bg-zinc-800/40 text-zinc-300 hover:border-zinc-600'}
-              ${disabled && selected !== opt ? 'opacity-50' : ''}`}
-          >
-            {opt}
-          </button>
-        ))}
+      <div className="grid grid-cols-2 gap-3 pt-1">
+        {question.options?.map((opt) => {
+          const isSelected = selected === opt
+          return (
+            <button
+              key={opt}
+              disabled={disabled}
+              onClick={() => onSelect(opt)}
+              className={`p-4 rounded-2xl border-2 text-center transition-all font-display font-bold text-sm cursor-pointer shadow-2xs ${
+                isSelected 
+                  ? 'border-[#5865f2] bg-indigo-50/90 text-[#5865f2] shadow-md' 
+                  : 'border-slate-200 bg-white text-slate-800 hover:border-indigo-300 hover:bg-slate-50'
+              }`}
+            >
+              {opt}
+            </button>
+          )
+        })}
       </div>
     )
   }
@@ -272,8 +514,8 @@ function PracticeQuestionRenderer({
     const usedRight = new Set(Object.values(matchPairs))
 
     return (
-      <div className="space-y-4">
-        <p className="text-zinc-500 text-xs text-center">Tap a left item, then its match on the right</p>
+      <div className="space-y-4 pt-1">
+        <p className="text-slate-500 text-xs font-bold">Tap a left item, then its match on the right:</p>
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
             {lefts.map(l => {
@@ -284,13 +526,14 @@ function PracticeQuestionRenderer({
                   key={l}
                   disabled={disabled}
                   onClick={() => onMatchSelect('left', l)}
-                  className={`w-full px-3 py-2.5 rounded-xl border text-left text-sm transition-all
-                    ${isPaired ? 'border-success-500/50 bg-success-500/15 text-success-300' :
-                      isActive ? 'border-primary-500 bg-primary-500/20 text-white scale-[0.98]' :
-                      'border-zinc-700 bg-zinc-800/60 text-zinc-300 hover:border-zinc-600'}`}
+                  className={`w-full px-3.5 py-3 rounded-xl border-2 text-left text-xs font-bold transition-all cursor-pointer ${
+                    isPaired ? 'border-emerald-500 bg-emerald-50 text-emerald-800' :
+                    isActive ? 'border-[#5865f2] bg-indigo-50 text-[#5865f2] scale-[0.98]' :
+                    'border-slate-200 bg-white text-slate-700 hover:border-indigo-300'
+                  }`}
                 >
                   {isPaired ? `✓ ${l}` : l}
-                  {isPaired && <span className="text-zinc-500 text-xs block truncate">&rarr; {matchPairs[l]}</span>}
+                  {isPaired && <span className="text-slate-500 text-[10px] block truncate">&rarr; {matchPairs[l]}</span>}
                 </button>
               )
             })}
@@ -303,10 +546,11 @@ function PracticeQuestionRenderer({
                   key={r}
                   disabled={disabled || isUsed}
                   onClick={() => onMatchSelect('right', r)}
-                  className={`w-full px-3 py-2.5 rounded-xl border text-left text-sm transition-all
-                    ${isUsed ? 'border-success-500/30 bg-success-500/10 text-zinc-500 opacity-60 cursor-not-allowed' :
-                      matchLeft ? 'border-accent-500/60 bg-accent-500/10 text-accent-300 hover:bg-accent-500/20 animate-pulse' :
-                      'border-zinc-700 bg-zinc-800/60 text-zinc-300 hover:border-zinc-600'}`}
+                  className={`w-full px-3.5 py-3 rounded-xl border-2 text-left text-xs font-bold transition-all cursor-pointer ${
+                    isUsed ? 'border-slate-200 bg-slate-100 text-slate-400 opacity-60 cursor-not-allowed' :
+                    matchLeft ? 'border-amber-400 bg-amber-50 text-amber-900 animate-pulse' :
+                    'border-slate-200 bg-white text-slate-700 hover:border-indigo-300'
+                  }`}
                 >
                   {r}
                 </button>
@@ -320,10 +564,10 @@ function PracticeQuestionRenderer({
 
   if (type === 'reorder') {
     return (
-      <div className="space-y-2">
+      <div className="space-y-2.5 pt-1">
         {reorderItems.map((item, i) => (
-          <div key={item} className="flex gap-2">
-            <div className="flex gap-1">
+          <div key={item} className="flex items-center gap-2">
+            <div className="flex flex-col gap-1">
               <button
                 disabled={i === 0 || disabled}
                 onClick={() => {
@@ -331,7 +575,7 @@ function PracticeQuestionRenderer({
                   ;[arr[i - 1], arr[i]] = [arr[i], arr[i - 1]]
                   onReorderChange(arr)
                 }}
-                className="px-2 py-1 rounded-lg bg-zinc-800 text-zinc-500 text-xs hover:text-zinc-300 disabled:opacity-30 transition-colors"
+                className="w-7 h-6 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-xs disabled:opacity-30 transition-colors flex items-center justify-center cursor-pointer"
               >▲</button>
               <button
                 disabled={i === reorderItems.length - 1 || disabled}
@@ -340,10 +584,10 @@ function PracticeQuestionRenderer({
                   ;[arr[i], arr[i + 1]] = [arr[i + 1], arr[i]]
                   onReorderChange(arr)
                 }}
-                className="px-2 py-1 rounded-lg bg-zinc-800 text-zinc-500 text-xs hover:text-zinc-300 disabled:opacity-30 transition-colors"
+                className="w-7 h-6 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-xs disabled:opacity-30 transition-colors flex items-center justify-center cursor-pointer"
               >▼</button>
             </div>
-            <div className="flex-1 px-4 py-2.5 rounded-xl border border-zinc-700 bg-zinc-800/40 text-zinc-300 text-sm">
+            <div className="flex-1 p-3.5 rounded-xl border-2 border-slate-200 bg-white text-slate-800 font-bold text-xs">
               {item}
             </div>
           </div>
@@ -351,9 +595,9 @@ function PracticeQuestionRenderer({
         <button
           disabled={disabled}
           onClick={onReorderSubmit}
-          className="btn-game w-full py-3 mt-2"
+          className="w-full py-3 mt-2 rounded-xl bg-[#5865f2] hover:bg-indigo-600 text-white font-black text-xs uppercase tracking-wider transition-colors cursor-pointer"
         >
-          Submit Order
+          Confirm Order
         </button>
       </div>
     )

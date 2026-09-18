@@ -5,19 +5,15 @@ import {
   Flame, 
   Zap, 
   Star, 
-  Check, 
   RotateCcw, 
   Home, 
   ChevronDown, 
-  ChevronUp, 
   Trophy, 
   LogOut, 
   BarChart2, 
   Target, 
-  BookOpen, 
-  CheckCircle2, 
-  XCircle, 
-  Sparkles,
+  FileText,
+  X,
   ArrowRight
 } from 'lucide-react'
 import { useState, useMemo } from 'react'
@@ -26,24 +22,10 @@ import { useProgress } from './hooks/useCurriculum'
 import { useAuthStore } from '@/store/authStore'
 import { auth } from '@/lib/firebase'
 
-// Static badge catalog — mirrors backend domain.BadgeCatalog
-const BADGE_ICONS: Record<string, string> = {
-  first_blood: '🩸', perfect_score: '💯', hat_trick: '🎩',
-  streak_starter: '🔥', streak_warrior: '⚔️', unit_mastered: '🏆',
-  speed_demon: '⚡', combo_king: '👑', top_scorer: '🌟', grammar_god_badge: '⚡',
-}
-const BADGE_NAMES: Record<string, string> = {
-  first_blood: 'First Blood', perfect_score: 'Perfect Score', hat_trick: 'Hat Trick',
-  streak_starter: 'Streak Starter', streak_warrior: 'Streak Warrior', unit_mastered: 'Unit Mastered',
-  speed_demon: 'Speed Demon', combo_king: 'Combo King', top_scorer: 'Top Scorer', grammar_god_badge: 'Grammar God',
-}
-
-const CELEBRATION_EMOJIS = ['🎉', '✨', '⭐', '🎈', '🏆', '🍭', '🌟', '🍦', '🍡', '🥳', '🎁', '🚀']
-
 export default function QuizResultPage() {
   const { quizId } = useParams<{ quizId: string }>()
   const navigate = useNavigate()
-  const { result, reset } = useQuizSessionStore()
+  const { result, reset, questions } = useQuizSessionStore()
   const { data: userProgress } = useProgress()
   const { profile } = useAuthStore()
 
@@ -58,29 +40,83 @@ export default function QuizResultPage() {
     return null
   }
 
+  const score = result.score
   const passed = result.passed
   const starsArray = [1, 2, 3]
 
   const fullName = profile?.displayName ?? 'AKSHIT'
   const firstName = fullName.split(' ')[0].toUpperCase()
-  const totalXP = userProgress?.totalXP ?? (315 + (result?.xpEarned || 0))
+  const totalXP = userProgress?.totalXP ?? (900 + (result?.xpEarned || 0))
   const streak = userProgress?.currentStreak ?? 2
-  const stars = userProgress?.totalStars ?? 29
+  const stars = userProgress?.totalStars ?? 51
 
-  const correctCount = result.questionResults ? result.questionResults.filter(q => q.isCorrect).length : 0
+  const correctCount = result.questionResults ? result.questionResults.filter(q => q.isCorrect).length : 5
   const totalCount = result.questionResults ? result.questionResults.length : 5
 
-  // Generate 16 floating celebration popsicles/particles for children
+  // Multi-Tier Mood Configurations for Children matching exact user reference screenshot
+  const moodConfig = useMemo(() => {
+    if (score === 100) {
+      return {
+        ribbonBadge: '👑 PERFECT SCORE! 👑',
+        ribbonBg: 'bg-gradient-to-r from-orange-500 via-rose-500 to-amber-500 shadow-orange-500/50',
+        scoreColor: 'text-orange-500',
+        speechBubble: 'Unbelievable! You got a PERFECT SCORE! 🌟',
+        subtitle: 'You are a true Grammar Superhero! Outstanding work!',
+        mascotSign: 'Practice today, brighter tomorrow! ❤️',
+        bottomQuote: 'Every effort you make builds a brighter you!',
+        particleCount: 32,
+        emojis: ['🎉', '🎗️', '🏆', '🌟', '👑', '🍬', '🍦', '✨', '🥳', '🎀', '🎊']
+      }
+    } else if (score >= 90) {
+      return {
+        ribbonBadge: '🎉 LEVEL MASTERED! 🎉',
+        ribbonBg: 'bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-600 shadow-emerald-500/50',
+        scoreColor: 'text-[#10b981]',
+        speechBubble: 'FANTASTIC! You mastered this chapter! 🎉',
+        subtitle: "Incredible job! You've officially passed and mastered this topic!",
+        mascotSign: 'Practice today, brighter tomorrow! ❤️',
+        bottomQuote: 'Every effort you make builds a brighter you!',
+        particleCount: 24,
+        emojis: ['⭐', '🎗️', '✨', '🎈', '🏆', '🍦', '🎉', '🎀']
+      }
+    } else if (score >= 70) {
+      return {
+        ribbonBadge: '⚡ KEEP GOING! ⚡',
+        ribbonBg: 'bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 shadow-orange-500/50',
+        scoreColor: 'text-[#f43f5e]',
+        speechBubble: 'Great effort! Mistakes help you learn! 🐾',
+        subtitle: "You're on the right track! A little more practice will get you there.",
+        mascotSign: 'Practice today, brighter tomorrow! ❤️',
+        bottomQuote: 'Every effort you make builds a brighter you!',
+        particleCount: 18,
+        emojis: ['✨', '⭐', '🎈', '🎯', '🌟', '🎗️', '💖']
+      }
+    } else {
+      return {
+        ribbonBadge: '💪 KEEP GOING! 💪',
+        ribbonBg: 'bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 shadow-orange-500/50',
+        scoreColor: 'text-orange-500',
+        speechBubble: 'Mistakes help us learn and grow stronger! 🐾',
+        subtitle: "Every question you practice makes your brain super smart! Let's try again!",
+        mascotSign: 'Mistakes today, mastery tomorrow! ❤️',
+        bottomQuote: 'Mistakes are proof that you are trying!',
+        particleCount: 14,
+        emojis: ['🌱', '✨', '🐾', '💡', '🎈', '💖']
+      }
+    }
+  }, [score])
+
+  // Falling particles tailored to score mood (Ribbons, Confetti, Props)
   const celebrationParticles = useMemo(() => {
-    return Array.from({ length: 16 }).map((_, i) => ({
+    return Array.from({ length: moodConfig.particleCount }).map((_, i) => ({
       id: i,
-      emoji: CELEBRATION_EMOJIS[i % CELEBRATION_EMOJIS.length],
-      left: `${(i * 6.2) + 3}%`,
-      delay: (i * 0.25) % 2.5,
-      duration: 3 + ((i * 0.4) % 2),
-      scale: 0.8 + ((i % 3) * 0.25),
+      emoji: moodConfig.emojis[i % moodConfig.emojis.length],
+      left: `${(i * (100 / moodConfig.particleCount)) + 1}%`,
+      delay: (i * 0.2) % 2.5,
+      duration: 3.0 + ((i * 0.4) % 2.5),
+      scale: 0.85 + ((i % 3) * 0.3),
     }))
-  }, [])
+  }, [moodConfig])
 
   const handleRetry = () => {
     reset()
@@ -103,16 +139,16 @@ export default function QuizResultPage() {
         <div className="absolute inset-0 bg-slate-900/15 backdrop-blur-[1px]" />
       </div>
 
-      {/* ── 2. CELEBRATION FALLING POPSICLES & PARTICLES (Children Effect) ── */}
+      {/* ── 2. FALLING CELEBRATION PARTICLES (Ribbons, Confetti & Props) ── */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-10">
         {celebrationParticles.map(p => (
           <motion.div
             key={p.id}
-            initial={{ y: -60, opacity: 0, rotate: 0 }}
+            initial={{ y: -80, opacity: 0, rotate: 0 }}
             animate={{ 
-              y: ['0vh', '105vh'],
+              y: ['0vh', '108vh'],
               opacity: [0, 1, 1, 0],
-              rotate: [0, 45, -45, 90]
+              rotate: [0, 60, -60, 120]
             }}
             transition={{
               duration: p.duration,
@@ -180,7 +216,7 @@ export default function QuizResultPage() {
             <div className="relative border-l border-slate-200 pl-2 sm:pl-3">
               <button
                 onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-                className="flex items-center gap-2 py-1 px-1.5 rounded-xl hover:bg-slate-100 transition-colors text-left group"
+                className="flex items-center gap-2 py-1 px-1.5 rounded-xl hover:bg-slate-100 transition-colors text-left group cursor-pointer"
               >
                 <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#5865f2] to-purple-600 text-white font-black text-xs flex items-center justify-center shadow-sm uppercase">
                   {firstName.charAt(0)}
@@ -216,7 +252,7 @@ export default function QuizResultPage() {
                         <span>Leaderboard</span>
                       </RouterLink>
                       <div className="border-t border-slate-100 my-1" />
-                      <button onClick={() => auth.signOut()} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 text-left">
+                      <button onClick={() => auth.signOut()} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 text-left cursor-pointer">
                         <LogOut className="w-4 h-4" />
                         <span>Sign Out</span>
                       </button>
@@ -231,128 +267,144 @@ export default function QuizResultPage() {
         </div>
       </header>
 
-      {/* ── 4. MAIN RICH RESULTS GRID ───────────────────────────────────────── */}
-      <main className="flex-1 relative z-20 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 flex flex-col justify-center">
+      {/* ── 4. MAIN RICH RESULTS GRID (MATCHING USER REFERENCE SCREENSHOT) ── */}
+      <main className="flex-1 relative z-20 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex flex-col justify-center">
         
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           
-          {/* ── LEFT SIDEBAR: SPEECH BUBBLES & MOTIVATIONAL CARDS (3 cols) ── */}
-          <div className="hidden lg:flex lg:col-span-3 flex-col items-center space-y-4 pt-4">
+          {/* ── LEFT SIDEBAR: MASCOT SPEECH BUBBLES & NOTE CARD (3 cols) ── */}
+          <div className="hidden lg:flex lg:col-span-3 flex-col items-center space-y-4 pt-2">
             
-            {/* Top Speech Bubble positioned over the background mascot */}
+            {/* Speech Bubble floating over Fox Mascot */}
             <motion.div 
               initial={{ opacity: 0, scale: 0.9, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
               className="bg-white/95 backdrop-blur-md rounded-2xl p-4 border-2 border-amber-300 shadow-xl text-slate-800 text-center relative max-w-[240px]"
             >
               <p className="font-display font-black text-xs sm:text-sm text-slate-900 leading-snug">
-                {passed ? 'Awesome job! You mastered this quest! 🎉' : 'Great effort! Mistakes help you learn! 🐾'}
+                {moodConfig.speechBubble}
               </p>
               <div className="w-3.5 h-3.5 bg-white border-b-2 border-r-2 border-amber-300 rotate-45 absolute -bottom-2 left-1/2 -translate-x-1/2" />
             </motion.div>
 
-            {/* Motivational Speech Card 2 */}
-            <div className="bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-300/80 rounded-2xl p-4 text-center max-w-[240px] shadow-sm space-y-1">
-              <span className="text-2xl">✨ 🎯 ✨</span>
-              <p className="font-display font-black text-xs text-amber-950">
-                Practice today. Brighter tomorrow!
+            {/* Mascot Sign Note Card matching User Screenshot */}
+            <div className="bg-white/90 border-2 border-amber-300/80 rounded-2xl p-4 text-center max-w-[240px] shadow-md space-y-1">
+              <p className="font-display font-black text-xs text-slate-900 leading-snug">
+                {moodConfig.mascotSign}
               </p>
-              <p className="text-[10px] font-extrabold text-amber-700">Grammar Adventure</p>
-            </div>
-
-            {/* Bottom Scroll Note */}
-            <div className="bg-white/95 border-2 border-amber-300 text-slate-900 px-4 py-2.5 rounded-2xl text-[11px] font-black shadow-md text-center max-w-[240px]">
-              Same Grammar. Brighter You! 🐾
             </div>
 
           </div>
 
-          {/* ── CENTER COLUMN: MAIN ENERGETIC RESULTS CARD (6 cols) ─────────── */}
+          {/* ── CENTER COLUMN: MAIN PARCHMENT SCORE CARD (6 cols) ──────────── */}
           <div className="lg:col-span-6 w-full max-w-lg mx-auto">
             
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              initial={{ opacity: 0, scale: 0.92, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              className="bg-white/95 backdrop-blur-xl rounded-[32px] p-6 sm:p-8 border border-white/90 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.35)] relative overflow-visible text-center space-y-5"
+              transition={{ type: 'spring', stiffness: 220, damping: 20 }}
+              className="bg-[#fffdfa]/95 backdrop-blur-xl rounded-[38px] p-6 sm:p-8 border-4 border-amber-200/90 shadow-[0_30px_70px_-15px_rgba(0,0,0,0.35)] relative overflow-visible text-center space-y-4"
             >
               
-              {/* Top Floating 3D Curved Ribbon Header Banner */}
-              <div className="absolute -top-6 left-1/2 -translate-x-1/2 z-20">
+              {/* Radial Light Glow behind Parchment Card */}
+              {score >= 80 && (
+                <div className="absolute -inset-4 rounded-[48px] bg-gradient-to-r from-amber-400/20 via-orange-400/20 to-yellow-400/20 blur-xl pointer-events-none -z-10 animate-pulse" />
+              )}
+
+              {/* 3 Gold Stars Crown atop Banner & 3D Curved Ribbon Banner */}
+              <div className="absolute -top-11 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center">
+                {/* Crown Stars */}
+                <div className="flex items-center gap-1 -mb-2 relative z-30">
+                  <Star className="w-6 h-6 text-amber-400 fill-amber-400 drop-shadow-md -rotate-12" />
+                  <Star className="w-8 h-8 text-amber-400 fill-amber-400 drop-shadow-lg -mt-2" />
+                  <Star className="w-6 h-6 text-amber-400 fill-amber-400 drop-shadow-md rotate-12" />
+                </div>
+                
+                {/* 3D Ribbon Banner */}
                 <motion.div 
-                  initial={{ scale: 0.8 }}
-                  animate={{ scale: [1, 1.04, 1] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-                  className={`px-8 py-2.5 rounded-full font-display font-black text-lg text-white shadow-xl tracking-wide whitespace-nowrap flex items-center gap-2 border-2 border-white ${
-                    passed 
-                      ? 'bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 shadow-emerald-500/40' 
-                      : 'bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 shadow-orange-500/40'
-                  }`}
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: 'spring', stiffness: 250, delay: 0.3 }}
+                  className={`px-8 py-2.5 rounded-full font-display font-black text-base sm:text-lg text-white shadow-xl tracking-wide whitespace-nowrap flex items-center gap-2 border-2 border-white ${moodConfig.ribbonBg}`}
                 >
-                  <span>{passed ? '🎉 LEVEL MASTERED! 🎉' : '⚡ KEEP GOING! ⚡'}</span>
+                  <span>{moodConfig.ribbonBadge}</span>
                 </motion.div>
               </div>
 
               {/* Header Subtitle */}
-              <div className="pt-4">
-                <p className="text-xs sm:text-sm font-bold text-slate-500 max-w-xs mx-auto leading-relaxed">
-                  {passed 
-                    ? 'You passed! You mastered this chapter with flying colors!' 
-                    : "You're on the right track! A little more practice will get you there."}
+              <div className="pt-6">
+                <p className="text-xs sm:text-sm font-extrabold text-slate-500 max-w-xs mx-auto leading-relaxed">
+                  {moodConfig.subtitle}
                 </p>
               </div>
 
-              {/* Big Energetic Percentage Score Display */}
+              {/* Big Energetic Percentage Score Display framed by Laurel Leaves */}
               <motion.div 
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: 'spring', stiffness: 200, delay: 0.2 }}
-                className="py-1"
+                initial={{ scale: 0.2, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: 'spring', stiffness: 260, damping: 18, delay: 0.35 }}
+                className="py-1 flex items-center justify-center gap-3"
               >
-                <div className="inline-block relative">
-                  <span className={`font-display font-black text-6xl sm:text-7xl tracking-tight leading-none filter drop-shadow-md ${
-                    passed ? 'text-[#10b981]' : 'text-rose-500'
-                  }`}>
-                    {result.score}%
-                  </span>
-                </div>
+                <span className="text-3xl text-emerald-600 font-bold select-none opacity-80 hidden sm:inline">🌿</span>
+                <span className={`font-display font-black text-6xl sm:text-7xl tracking-tight leading-none filter drop-shadow-sm ${moodConfig.scoreColor}`}>
+                  {result.score}%
+                </span>
+                <span className="text-3xl text-emerald-600 font-bold select-none opacity-80 hidden sm:inline scale-x-[-1]">🌿</span>
               </motion.div>
 
-              {/* 3 Animated Giant Gold Stars */}
-              <div className="flex items-center justify-center gap-3">
-                {starsArray.map((s, i) => (
-                  <motion.div
-                    key={s}
-                    initial={{ scale: 0, rotate: -30 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    transition={{ delay: 0.3 + i * 0.12, type: 'spring', stiffness: 300 }}
-                  >
-                    <Star
-                      className={`w-9 h-9 sm:w-11 sm:h-11 ${
-                        s <= result.starsEarned
-                          ? 'text-amber-400 fill-amber-400 drop-shadow-[0_4px_12px_rgba(251,191,36,0.6)]'
-                          : 'text-slate-200 fill-slate-100'
-                      }`}
-                    />
-                  </motion.div>
-                ))}
+              {/* ── SEQUENTIAL GAME STAR REVEAL ANIMATION (STARS POP ONE BY ONE) ── */}
+              <div className="flex items-center justify-center gap-3.5 py-1">
+                {starsArray.map((s, i) => {
+                  const isEarned = s <= result.starsEarned
+                  return (
+                    <div key={s} className="relative">
+                      {/* Sparkle bursting effect behind earned stars */}
+                      {isEarned && (
+                        <motion.div
+                          initial={{ scale: 0, opacity: 0 }}
+                          animate={{ scale: [0, 1.8, 0], opacity: [0, 0.8, 0] }}
+                          transition={{ delay: 0.45 + i * 0.35, duration: 0.6 }}
+                          className="absolute inset-0 bg-amber-400 rounded-full blur-md"
+                        />
+                      )}
+                      <motion.div
+                        initial={{ scale: 0, opacity: 0, rotate: -45 }}
+                        animate={{ scale: [0, 1.45, 0.9, 1], opacity: 1, rotate: [ -45, 15, 0 ] }}
+                        transition={{ 
+                          delay: 0.45 + i * 0.35, 
+                          duration: 0.5,
+                          type: 'spring', 
+                          stiffness: 280, 
+                          damping: 14 
+                        }}
+                      >
+                        <Star
+                          className={`w-11 h-11 sm:w-12 sm:h-12 transition-all duration-300 ${
+                            isEarned
+                              ? 'text-amber-400 fill-amber-400 drop-shadow-[0_4px_16px_rgba(251,191,36,0.8)]'
+                              : 'text-slate-200 fill-slate-100'
+                          }`}
+                        />
+                      </motion.div>
+                    </div>
+                  )
+                })}
               </div>
 
-              {/* Festive Reward Pills (XP, Personal Best, Combo) */}
+              {/* Festive Reward Badges (XP, Personal Best, Combo) */}
               <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
-                {/* XP Pill */}
                 <div className="px-3.5 py-1.5 rounded-full bg-indigo-50 border border-indigo-200 text-[#5865f2] font-black text-xs flex items-center gap-1.5 shadow-2xs">
                   <Zap className="w-4 h-4 fill-indigo-500 text-indigo-500" />
                   <span>+{result.xpEarned} XP earned</span>
                 </div>
 
-                {/* Personal Best */}
                 {result.personalBest && (
                   <div className="px-3.5 py-1.5 rounded-full bg-amber-50 border border-amber-200 text-amber-700 font-black text-xs flex items-center gap-1.5 shadow-2xs">
                     <span>🏆 Personal Best!</span>
                   </div>
                 )}
 
-                {/* Combo */}
                 {result.maxCombo > 1 && (
                   <div className="px-3.5 py-1.5 rounded-full bg-orange-50 border border-orange-200 text-orange-600 font-black text-xs flex items-center gap-1.5 shadow-2xs">
                     <span>🔥 {result.maxCombo}x Combo!</span>
@@ -360,85 +412,60 @@ export default function QuizResultPage() {
                 )}
               </div>
 
-              {/* Badges Earned */}
-              {result.badgesEarned && result.badgesEarned.length > 0 && (
-                <div className="p-3 bg-amber-50/90 border border-amber-200 rounded-2xl space-y-1.5 text-center">
-                  <p className="text-[10px] font-black uppercase tracking-wider text-amber-800">🎖️ Badges Unlocked!</p>
-                  <div className="flex flex-wrap justify-center gap-2">
-                    {result.badgesEarned.map(bid => (
-                      <div key={bid} className="flex items-center gap-1 px-2.5 py-1 bg-white border border-amber-300 rounded-full text-xs font-extrabold text-slate-800 shadow-2xs">
-                        <span>{BADGE_ICONS[bid] ?? '🏅'}</span>
-                        <span>{BADGE_NAMES[bid] ?? bid}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {/* Attempt Sub-Info */}
               <p className="text-xs font-extrabold text-slate-400">
                 Attempt #{result.attemptNumber} &bull; {correctCount}/{totalCount} correct
               </p>
 
               {/* CTA Action Buttons */}
-              <div className="space-y-2.5 pt-2">
+              <div className="space-y-2.5 pt-1">
                 <button
                   onClick={passed ? handleHome : handleRetry}
-                  className="w-full py-4 px-6 rounded-2xl font-display font-black text-lg tracking-wide bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-orange-500 text-white shadow-lg shadow-orange-500/30 transition-all flex items-center justify-center gap-2.5 border-b-4 border-orange-700 active:scale-[0.98] cursor-pointer"
+                  className="w-full py-4 px-6 rounded-2xl font-display font-black text-lg tracking-wide bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-orange-500 text-white shadow-lg shadow-orange-500/30 transition-all flex items-center justify-center gap-2 border-b-4 border-orange-700 active:scale-[0.98] cursor-pointer"
                 >
-                  <RotateCcw className="w-5 h-5 stroke-[2.5]" />
                   <span>{passed ? 'Continue Journey' : 'Try Again'}</span>
+                  <ArrowRight className="w-5 h-5 stroke-[3]" />
                 </button>
 
-                <button
-                  onClick={handleHome}
-                  className="w-full py-3.5 px-6 rounded-2xl font-display font-black text-sm tracking-wide bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-2xs"
-                >
-                  <Home className="w-4 h-4" />
-                  <span>Dashboard</span>
-                </button>
-              </div>
-
-              {/* Question Answer Review Accordion — FIX OVERFLOW BUG WITH MAX HEIGHT SCROLLBAR */}
-              {result.questionResults && result.questionResults.length > 0 && (
-                <div className="pt-2">
+                <div className="grid grid-cols-2 gap-2.5">
                   <button
-                    onClick={() => setShowReview(v => !v)}
-                    className="w-full flex items-center justify-between py-3 px-4 rounded-2xl bg-slate-100/90 hover:bg-slate-200/80 transition-colors text-xs font-black text-slate-700 cursor-pointer"
+                    onClick={handleHome}
+                    className="py-3 px-4 rounded-2xl font-display font-black text-xs tracking-wide bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
                   >
-                    <span>Review answers</span>
-                    {showReview ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
+                    <Home className="w-4 h-4 text-slate-500" />
+                    <span>Dashboard</span>
                   </button>
 
-                  <AnimatePresence>
-                    {showReview && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        className="overflow-hidden text-left"
-                      >
-                        {/* Scrollable Container with max height prevents screen overflow */}
-                        <div className="max-h-[340px] overflow-y-auto space-y-3 pt-3 pr-1 scrollbar-thin scrollbar-thumb-slate-300">
-                          {result.questionResults.map((qr, i) => (
-                            <QuestionReviewCard key={qr.questionId} qr={qr} index={i} />
-                          ))}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                  <button
+                    onClick={() => setShowReview(true)}
+                    className="py-3 px-4 rounded-2xl font-display font-black text-xs tracking-wide bg-indigo-50 hover:bg-indigo-100 text-[#5865f2] border border-indigo-200 transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                  >
+                    <FileText className="w-4 h-4 text-[#5865f2]" />
+                    <span>Review ({correctCount}/{totalCount})</span>
+                  </button>
                 </div>
-              )}
+              </div>
+
+              {/* Bottom Card Quote Box inside Parchment matching user reference screenshot */}
+              <div className="mt-3 p-3 bg-amber-50/70 rounded-2xl border border-amber-200/80 flex items-center justify-between gap-3 text-left">
+                <p className="text-[11px] font-extrabold text-slate-700 leading-snug italic">
+                  “{moodConfig.bottomQuote}”
+                  <span className="block font-black text-[#5865f2] not-italic mt-0.5">&mdash; Grammo</span>
+                </p>
+                <div className="w-8 h-8 rounded-xl bg-amber-200/80 border border-amber-300 flex items-center justify-center text-lg shrink-0">
+                  🦊
+                </div>
+              </div>
 
             </motion.div>
 
           </div>
 
-          {/* ── RIGHT SIDEBAR: GOALS & CHECKLIST WIDGETS (3 cols) ───────────── */}
+          {/* ── RIGHT SIDEBAR: GOALS & PROGRESS (EXACTLY MATCHING USER SCREENSHOT) ───── */}
           <div className="hidden lg:flex lg:col-span-3 flex-col space-y-4">
             
-            {/* Checklist Box */}
-            <div className="bg-white/95 backdrop-blur-md rounded-2xl p-5 border border-amber-300 shadow-md space-y-3 text-left">
+            {/* Card 1: Checklist Box */}
+            <div className="bg-white/95 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-amber-300 shadow-md space-y-3 text-left">
               <h4 className="font-display font-black text-sm text-slate-900 border-b border-slate-100 pb-2 flex items-center justify-between">
                 <span>You're Almost There!</span>
                 <span className="text-xs text-amber-500">✨</span>
@@ -459,17 +486,22 @@ export default function QuizResultPage() {
               </div>
             </div>
 
-            {/* Quote Bubble Card */}
-            <div className="bg-indigo-50/90 border border-indigo-200/90 rounded-2xl p-4 text-left shadow-xs space-y-1">
-              <div className="text-[#5865f2] font-black text-2xl leading-none">“</div>
-              <p className="text-xs font-extrabold text-indigo-950 leading-relaxed italic">
-                Every mistake is a step closer to mastery!
-              </p>
-              <p className="text-[10px] font-black text-[#5865f2] text-right mt-1">&mdash; Grammo</p>
+            {/* Card 2: Quote Bubble Card with Mascot Face */}
+            <div className="bg-indigo-50/90 border border-indigo-200/90 rounded-2xl p-4 text-left shadow-xs flex items-center justify-between gap-3">
+              <div className="space-y-1">
+                <div className="text-[#5865f2] font-black text-xl leading-none">“</div>
+                <p className="text-xs font-extrabold text-indigo-950 leading-relaxed italic">
+                  Every mistake is a step closer to mastery!
+                </p>
+                <p className="text-[10px] font-black text-[#5865f2] text-right mt-1">&mdash; Grammo</p>
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-amber-100 border border-amber-200 flex items-center justify-center text-2xl shrink-0">
+                🦊
+              </div>
             </div>
 
-            {/* Next Goals Action Box */}
-            <div className="bg-white/95 backdrop-blur-md rounded-2xl p-5 border border-slate-200 shadow-md space-y-3 text-left">
+            {/* Card 3: Next Goals Action Box */}
+            <div className="bg-white/95 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-md space-y-3 text-left">
               <h4 className="font-display font-black text-xs uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
                 <Target className="w-4 h-4 text-rose-500" />
                 <span>Next Goals</span>
@@ -498,11 +530,16 @@ export default function QuizResultPage() {
               </div>
             </div>
 
-            {/* Bottom Book Stack Note */}
-            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-2xl p-3 text-center">
-              <p className="text-[10px] font-black text-indigo-900">
-                Progress Looks Good on You! 🐾
-              </p>
+            {/* Card 4: Progress Track Badge */}
+            <div className="bg-white/95 rounded-2xl p-4 border border-indigo-100 shadow-sm space-y-2 text-left">
+              <p className="text-[11px] font-black text-slate-900">Progress Looks Good on You!</p>
+              <div className="flex items-center gap-1.5">
+                <div className="w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px]">✓</div>
+                <div className="w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px]">✓</div>
+                <div className="w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px]">✓</div>
+                <div className="h-0.5 w-4 bg-slate-200" />
+                <div className="w-3 h-3 rounded-full bg-slate-200" />
+              </div>
             </div>
 
           </div>
@@ -511,7 +548,66 @@ export default function QuizResultPage() {
 
       </main>
 
-      {/* ── 5. RANK-UP MODAL POPUP ─────────────────────────────────────────── */}
+      {/* ── 5. REVIEW ANSWERS POPUP MODAL (ON CLICK REVIEW BUTTON) ───────────── */}
+      <AnimatePresence>
+        {showReview && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-50 flex items-center justify-center p-4 sm:p-6"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-3xl p-5 sm:p-7 max-w-xl w-full border-2 border-indigo-200 shadow-2xl space-y-4 max-h-[85vh] flex flex-col text-left"
+            >
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-xl text-[#5865f2]">
+                    📋
+                  </div>
+                  <div>
+                    <h3 className="font-display font-black text-slate-900 text-lg sm:text-xl">
+                      Review Your Answers
+                    </h3>
+                    <p className="text-xs font-bold text-slate-500">
+                      Score: {result.score}% &bull; {correctCount} of {totalCount} correct
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setShowReview(false)}
+                  className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Scrollable list for questions */}
+              <div className="flex-1 overflow-y-auto space-y-3 pr-1 scrollbar-thin scrollbar-thumb-slate-300">
+                {result.questionResults?.map((qr, i) => {
+                  const originalQuestion = questions.find(q => q.id === qr.questionId);
+                  return <QuestionReviewCard key={qr.questionId} qr={qr} index={i} originalQuestionText={originalQuestion?.text} />
+                })}
+              </div>
+
+              <div className="pt-2 border-t border-slate-100">
+                <button
+                  onClick={() => setShowReview(false)}
+                  className="w-full py-3.5 rounded-2xl bg-[#5865f2] hover:bg-indigo-600 text-white font-black text-sm shadow-md transition-colors cursor-pointer"
+                >
+                  Close Review
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── 6. RANK-UP MODAL POPUP ─────────────────────────────────────────── */}
       <AnimatePresence>
         {result.rankUpTitle && showRankUpModal && (
           <motion.div
@@ -551,7 +647,7 @@ export default function QuizResultPage() {
         )}
       </AnimatePresence>
 
-      {/* ── 6. UNIT COMPLETE MODAL POPUP ──────────────────────────────────── */}
+      {/* ── 7. UNIT COMPLETE MODAL POPUP ──────────────────────────────────── */}
       <AnimatePresence>
         {result.unitComplete && showUnitCompleteModal && (!result.rankUpTitle || !showRankUpModal) && (
           <motion.div
@@ -601,7 +697,7 @@ export default function QuizResultPage() {
 // ─── Question Review Card ─────────────────────────────────────────────────────
 
 function QuestionReviewCard({
-  qr, index,
+  qr, index, originalQuestionText
 }: {
   qr: {
     questionId: string
@@ -611,37 +707,40 @@ function QuestionReviewCard({
     explanation: string
   },
   index: number,
+  originalQuestionText?: string
 }) {
   return (
-    <div className={`p-4 rounded-2xl border-2 text-xs font-bold space-y-2 bg-white ${
-      qr.isCorrect ? 'border-emerald-200 bg-emerald-50/40' : 'border-rose-200 bg-rose-50/40'
+    <div className={`p-4 rounded-2xl border flex flex-col gap-2 text-xs font-bold bg-white shadow-2xs transition-all hover:border-indigo-300 ${
+      qr.isCorrect ? 'border-emerald-200 bg-emerald-50/20' : 'border-rose-200 bg-rose-50/20'
     }`}>
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          {qr.isCorrect
-            ? <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-            : <XCircle className="w-4 h-4 text-rose-500" />}
-          <span className={qr.isCorrect ? 'text-emerald-700' : 'text-rose-600'}>
-            {qr.isCorrect ? 'Correct' : 'Incorrect'}
+        <div className="flex items-center gap-2">
+          <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black text-white ${
+            qr.isCorrect ? 'bg-emerald-500' : 'bg-rose-500'
+          }`}>
+            {qr.isCorrect ? '✓' : '✕'}
           </span>
+          <span className="font-extrabold text-slate-800 text-sm">Q{index + 1}</span>
         </div>
-        <span className="text-slate-400 text-[10px]">Q{index + 1}</span>
+        <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-lg ${
+          qr.isCorrect ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+        }`}>
+          {qr.isCorrect ? 'Correct' : 'Incorrect'}
+        </span>
       </div>
 
-      {!qr.isCorrect && (
-        <div className="space-y-1 pt-1">
-          <p className="text-slate-500 text-[10px]">Your answer:</p>
-          <p className="text-rose-600 font-extrabold text-xs">
-            {qr.selectedAnswer || '(no answer)'}
-          </p>
-          <p className="text-slate-500 text-[10px] pt-0.5">Correct answer:</p>
-          <p className="text-emerald-600 font-extrabold text-xs">{qr.correctAnswer}</p>
-        </div>
-      )}
+      <p className="text-slate-800 font-black text-sm leading-relaxed border-b border-slate-100/50 pb-2">
+        {originalQuestionText || 'Unknown Question'}
+      </p>
 
-      {qr.explanation && (
-        <div className="mt-2 p-2.5 bg-slate-100 rounded-xl border border-slate-200/80">
-          <p className="text-slate-600 text-[11px] font-semibold leading-relaxed">💡 {qr.explanation}</p>
+      <p className="text-slate-600 font-bold text-xs leading-relaxed pt-1">
+        {qr.explanation || (qr.isCorrect ? 'Correct answer!' : 'Incorrect answer.')}
+      </p>
+
+      {!qr.isCorrect && (
+        <div className="mt-1 p-2.5 bg-rose-50 border border-rose-200/80 rounded-xl space-y-1 text-xs">
+          <p className="text-rose-600 font-bold">Your answer: {qr.selectedAnswer || '(none)'}</p>
+          <p className="text-emerald-700 font-bold">Correct answer: {qr.correctAnswer}</p>
         </div>
       )}
     </div>
