@@ -90,22 +90,46 @@ export function getDashboardPath(role: UserRole): string {
 
 function AuthLoadingScreen() {
   return (
-    <div className="min-h-dvh flex items-center justify-center bg-white">
+    <div className="min-h-screen w-full flex items-center justify-center bg-white font-sans selection:bg-orange-500 selection:text-white p-4">
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="flex flex-col items-center gap-4"
+        className="flex flex-col items-center gap-5 text-center"
       >
-        {/* Grammo placeholder — will be replaced with Lottie animation */}
-        <div className="relative w-16 h-16">
+        {/* Awesome Dual Ring Spinner with Mascot */}
+        <div className="relative w-20 h-20 flex items-center justify-center">
+          {/* Outer Pulsing Glow */}
+          <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-amber-400 via-orange-500 to-amber-300 opacity-30 blur-md animate-pulse" />
+          
+          {/* Outer Rotating Gradient Border Ring */}
           <motion.div
-            className="w-16 h-16 rounded-full bg-gradient-to-br from-orange-400 to-amber-500 shadow-md"
-            animate={{ scale: [1, 1.1, 1] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
+            className="absolute inset-0 rounded-full border-4 border-transparent border-t-orange-500 border-r-amber-400 border-b-orange-600"
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1.2, repeat: Infinity, ease: 'linear' }}
           />
-          <span className="absolute inset-0 flex items-center justify-center text-2xl">🦊</span>
+
+          {/* Inner Fox Avatar Badge */}
+          <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-amber-400 via-orange-500 to-amber-500 flex items-center justify-center text-3xl shadow-md border-2 border-white relative z-10">
+            🦊
+          </div>
+
+          {/* Floating Sparks */}
+          <span className="absolute -top-1 -right-1 text-sm animate-bounce">✨</span>
+          <span className="absolute -bottom-1 -left-1 text-xs animate-pulse">🌟</span>
         </div>
-        <p className="text-slate-600 text-sm font-extrabold tracking-wide">Loading GrammoQuest...</p>
+
+        {/* Text Container with Border Pill */}
+        <div className="space-y-1.5">
+          <div className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-orange-50/90 border-2 border-orange-200/90 shadow-2xs">
+            <span className="w-2 h-2 rounded-full bg-orange-500 animate-ping" />
+            <p className="text-slate-900 text-xs font-black uppercase tracking-widest">
+              Loading GrammoQuest...
+            </p>
+          </div>
+          <p className="text-[11px] font-extrabold text-slate-400">
+            Preparing your grammar adventure
+          </p>
+        </div>
       </motion.div>
     </div>
   )

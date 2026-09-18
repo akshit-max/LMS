@@ -83,8 +83,26 @@ export default function PracticePlayPage() {
 
   if (!currentQuestion || status === 'submitting') {
     return (
-      <div className="min-h-dvh bg-surface-950 flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen w-full flex items-center justify-center bg-white font-sans p-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="flex flex-col items-center gap-4 text-center"
+        >
+          <div className="relative w-16 h-16 flex items-center justify-center">
+            <motion.div
+              className="absolute inset-0 rounded-full border-3 border-transparent border-t-sky-500 border-r-indigo-500 border-b-purple-500"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1.2, repeat: Infinity, ease: 'linear' }}
+            />
+            <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-sky-400 to-indigo-500 flex items-center justify-center text-2xl shadow-md border-2 border-white relative z-10">
+              🎯
+            </div>
+          </div>
+          <p className="text-slate-900 text-xs font-black uppercase tracking-widest bg-sky-50 border border-sky-200 px-4 py-1.5 rounded-full shadow-2xs">
+            Loading Practice Arena...
+          </p>
+        </motion.div>
       </div>
     )
   }
