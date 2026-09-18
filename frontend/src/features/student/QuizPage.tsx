@@ -175,23 +175,17 @@ export default function QuizPage() {
 
   if (!currentQuestion || status === 'submitting') {
     return (
-      <div className="min-h-screen w-full relative flex flex-col items-center justify-center font-sans bg-[#0e1626] overflow-hidden">
-        <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat z-0"
-          style={{ backgroundImage: `url('/quiz_intro_bg_clean.jpg')` }}
-        >
-          <div className="absolute inset-0 bg-slate-900/15 backdrop-blur-[1px]" />
-        </div>
-        <div className="bg-white/95 backdrop-blur-xl rounded-3xl p-8 border border-white/90 shadow-2xl flex flex-col items-center justify-center gap-4 text-slate-800 z-10 max-w-sm w-full mx-4 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-orange-50/90 border border-orange-200/90 flex items-center justify-center shadow-xs">
-            <div className="w-9 h-9 border-3 border-orange-500 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen w-full flex flex-col items-center justify-center font-sans bg-white text-slate-800 p-4">
+        <div className="flex flex-col items-center justify-center gap-4 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-orange-50 border border-orange-200/80 flex items-center justify-center shadow-xs">
+            <div className="w-8 h-8 border-3 border-orange-500 border-t-transparent rounded-full animate-spin" />
           </div>
           <div>
             <p className="font-display font-black text-slate-900 text-base">
               {status === 'submitting' ? 'Calculating your final score...' : 'Loading question...'}
             </p>
-            <p className="text-xs font-bold text-slate-400 mt-1">
-              GrammoQuest Adventure
+            <p className="text-xs font-extrabold text-slate-400 mt-1">
+              Loading GrammoQuest...
             </p>
           </div>
         </div>
@@ -333,14 +327,14 @@ export default function QuizPage() {
                     {/* Fox Avatar Mascot Sitting Right on Top of Current Step Circle */}
                     {isCurrent && (
                       <motion.div 
-                        initial={{ y: -4, opacity: 0, scale: 0.8 }}
+                        initial={{ y: -3, opacity: 0, scale: 0.9 }}
                         animate={{ y: 0, opacity: 1, scale: 1 }}
-                        className="absolute -top-[21px] left-1/2 -translate-x-1/2 flex flex-col items-center justify-center z-30 pointer-events-none select-none w-6"
+                        className="absolute -top-[17px] left-1/2 -translate-x-1/2 flex flex-col items-center justify-center z-30 pointer-events-none select-none w-6"
                       >
-                        <span className="text-[14px] leading-none filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.15)] transform -translate-x-[1px]">
+                        <span className="text-[14px] leading-none filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.15)] transform -translate-x-[0.5px]">
                           🦊
                         </span>
-                        <div className="w-0 h-0 border-l-[3.5px] border-l-transparent border-r-[3.5px] border-r-transparent border-t-[4px] border-t-amber-500 mt-[0.5px]" />
+                        <div className="w-0 h-0 border-l-[3.5px] border-l-transparent border-r-[3.5px] border-r-transparent border-t-[4px] border-t-amber-500 -mt-[0.5px]" />
                       </motion.div>
                     )}
 

@@ -90,7 +90,7 @@ export function getDashboardPath(role: UserRole): string {
 
 function AuthLoadingScreen() {
   return (
-    <div className="min-h-dvh flex items-center justify-center bg-surface-950">
+    <div className="min-h-dvh flex items-center justify-center bg-white">
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -99,13 +99,13 @@ function AuthLoadingScreen() {
         {/* Grammo placeholder — will be replaced with Lottie animation */}
         <div className="relative w-16 h-16">
           <motion.div
-            className="w-16 h-16 rounded-full bg-gradient-to-br from-primary-500 to-accent-600"
+            className="w-16 h-16 rounded-full bg-gradient-to-br from-orange-400 to-amber-500 shadow-md"
             animate={{ scale: [1, 1.1, 1] }}
             transition={{ duration: 1.5, repeat: Infinity }}
           />
-          <span className="absolute inset-0 flex items-center justify-center text-2xl">🦁</span>
+          <span className="absolute inset-0 flex items-center justify-center text-2xl">🦊</span>
         </div>
-        <p className="text-zinc-400 text-sm font-medium">Loading GrammoQuest...</p>
+        <p className="text-slate-600 text-sm font-extrabold tracking-wide">Loading GrammoQuest...</p>
       </motion.div>
     </div>
   )
