@@ -175,11 +175,26 @@ export default function QuizPage() {
 
   if (!currentQuestion || status === 'submitting') {
     return (
-      <div className="min-h-screen bg-[#0e1626] flex flex-col items-center justify-center gap-4 text-white">
-        <div className="w-12 h-12 border-3 border-orange-500 border-t-transparent rounded-full animate-spin" />
-        <p className="text-slate-300 text-sm font-bold">
-          {status === 'submitting' ? 'Calculating your final score...' : 'Loading question...'}
-        </p>
+      <div className="min-h-screen w-full relative flex flex-col items-center justify-center font-sans bg-[#0e1626] overflow-hidden">
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat z-0"
+          style={{ backgroundImage: `url('/quiz_intro_bg_clean.jpg')` }}
+        >
+          <div className="absolute inset-0 bg-slate-900/15 backdrop-blur-[1px]" />
+        </div>
+        <div className="bg-white/95 backdrop-blur-xl rounded-3xl p-8 border border-white/90 shadow-2xl flex flex-col items-center justify-center gap-4 text-slate-800 z-10 max-w-sm w-full mx-4 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-orange-50/90 border border-orange-200/90 flex items-center justify-center shadow-xs">
+            <div className="w-9 h-9 border-3 border-orange-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+          <div>
+            <p className="font-display font-black text-slate-900 text-base">
+              {status === 'submitting' ? 'Calculating your final score...' : 'Loading question...'}
+            </p>
+            <p className="text-xs font-bold text-slate-400 mt-1">
+              GrammoQuest Adventure
+            </p>
+          </div>
+        </div>
       </div>
     )
   }
@@ -205,9 +220,9 @@ export default function QuizPage() {
           {/* Back Button */}
           <button 
             onClick={() => { if (confirm('Quit this quiz? Your progress will be lost.')) navigate(-1) }}
-            className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-xs transition-colors border border-slate-200/80 group shadow-2xs"
+            className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white hover:bg-orange-50 text-slate-700 hover:text-orange-600 font-black text-xs transition-colors border border-slate-200/80 group shadow-2xs"
           >
-            <ArrowLeft className="w-4 h-4 text-slate-500 group-hover:-translate-x-1 transition-transform" />
+            <ArrowLeft className="w-4 h-4 text-slate-500 group-hover:text-orange-500 group-hover:-translate-x-1 transition-all" />
             <span className="hidden sm:inline">Back to Lesson</span>
           </button>
 
@@ -509,15 +524,15 @@ function AnswerTile({
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`w-full px-4 py-3.5 sm:py-4 rounded-2xl border-2 flex items-center gap-3.5 text-left font-bold text-base transition-all duration-150 cursor-pointer
+      className={`w-full px-4 py-3.5 sm:py-4 rounded-2xl border-2 flex items-center gap-3.5 text-left font-bold text-base transition-all duration-150 cursor-pointer group
         ${selected 
           ? 'border-[#2563eb] bg-[#eff6ff] text-slate-900 shadow-xs ring-2 ring-[#2563eb]/20' 
-          : 'border-slate-200/90 bg-slate-50/80 text-slate-800 hover:bg-slate-100 hover:border-slate-300'
+          : 'border-slate-200/90 bg-white text-slate-800 hover:bg-orange-50/80 hover:border-orange-300'
         }
         ${disabled && !selected ? 'opacity-40' : ''}`}
     >
       <div className={`w-9 h-9 rounded-full font-black text-sm flex items-center justify-center shrink-0 transition-colors shadow-2xs
-        ${selected ? 'bg-[#2563eb] text-white' : 'bg-slate-200 text-slate-700'}`}>
+        ${selected ? 'bg-[#2563eb] text-white' : 'bg-slate-100 text-slate-700 group-hover:bg-orange-500 group-hover:text-white'}`}>
         {letter}
       </div>
       <span className="flex-1 font-display font-extrabold text-sm sm:text-base text-slate-900 leading-snug">
