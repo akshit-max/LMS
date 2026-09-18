@@ -72,11 +72,12 @@ func New(fb *config.FirebaseClients, cfg *config.Config, mediaSvc media.MediaSer
 	r.Use(chimiddleware.RealIP)
 	r.Use(func(next http.Handler) http.Handler { return corsMiddleware(next) })
 
-	// Health check (no auth)
-	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+	healthCheck := func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"status":"ok","service":"grammoquest-api","milestone":"M4"}`))
-	})
+	}
+	r.Get("/health", healthCheck)
+	r.Head("/health", healthCheck)
 
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Use(authMiddleware)
