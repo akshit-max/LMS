@@ -1,17 +1,17 @@
 import { useNavigate, useParams, Link as RouterLink } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { 
-  ArrowLeft, 
-  Flame, 
-  Zap, 
-  Star, 
-  RotateCcw, 
-  Home, 
-  ChevronDown, 
-  Trophy, 
-  LogOut, 
-  BarChart2, 
-  Target, 
+import {
+  ArrowLeft,
+  Flame,
+  Zap,
+  Star,
+  RotateCcw,
+  Home,
+  ChevronDown,
+  Trophy,
+  LogOut,
+  BarChart2,
+  Target,
   FileText,
   X,
   ArrowRight
@@ -108,9 +108,9 @@ export default function PracticeResultPage() {
 
   return (
     <div className="min-h-screen w-full relative flex flex-col font-sans selection:bg-[#5865f2] selection:text-white bg-[#0e1626] overflow-x-hidden">
-      
+
       {/* ── 1. BACKGROUND ARTWORK ─────────────────────────────────────────── */}
-      <div 
+      <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat z-0"
         style={{ backgroundImage: `url('/quiz_intro_bg_clean.jpg')` }}
       >
@@ -123,7 +123,7 @@ export default function PracticeResultPage() {
           <motion.div
             key={p.id}
             initial={{ y: -80, opacity: 0, rotate: 0 }}
-            animate={{ 
+            animate={{
               y: ['0vh', '108vh'],
               opacity: [0, 1, 1, 0],
               rotate: [0, 60, -60, 120]
@@ -145,8 +145,8 @@ export default function PracticeResultPage() {
       {/* ── 3. TOP NAVBAR ──────────────────────────────────────────────────── */}
       <header className="bg-white/95 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-40 shadow-xs w-full">
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
-          
-          <button 
+
+          <button
             onClick={handleHome}
             className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-xs transition-colors border border-slate-200/80 group shadow-2xs cursor-pointer"
           >
@@ -190,14 +190,14 @@ export default function PracticeResultPage() {
 
       {/* ── 4. MAIN PARCHMENT RESULT GRID ──────────────────────────────────── */}
       <main className="flex-1 relative z-20 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex flex-col justify-center">
-        
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          
+
           {/* ── LEFT DESKTOP COLUMN (Mascot & Speech Bubbles) (3 cols) ── */}
           <div className="hidden lg:flex lg:col-span-3 flex-col items-center space-y-4 pt-2">
-            
+
             {/* Top Speech Bubble 1 */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               className="bg-white/95 backdrop-blur-md rounded-2xl px-4 py-2.5 border-2 border-purple-300 shadow-xl text-slate-800 text-center relative max-w-[220px]"
@@ -209,7 +209,7 @@ export default function PracticeResultPage() {
             </motion.div>
 
             {/* Speech Bubble 2 */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               transition={{ delay: 0.1 }}
@@ -247,7 +247,7 @@ export default function PracticeResultPage() {
 
           {/* ── CENTER PARCHMENT CARD (6 cols) ────────────────────────── */}
           <div className="lg:col-span-6 w-full max-w-lg mx-auto">
-            
+
             <motion.div
               initial={{ opacity: 0, scale: 0.92, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -267,8 +267,8 @@ export default function PracticeResultPage() {
                 <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-amber-500 via-orange-500 to-purple-600 border-4 border-white shadow-md flex items-center justify-center text-xl text-white font-black -mb-2 relative z-30">
                   🎯
                 </div>
-                
-                <motion.div 
+
+                <motion.div
                   className={`px-8 py-2.5 rounded-full font-display font-black text-base sm:text-lg text-white shadow-xl tracking-wide whitespace-nowrap flex items-center gap-2 border-2 border-white ${moodConfig.ribbonBg}`}
                 >
                   <span>{moodConfig.ribbonBadge}</span>
@@ -302,11 +302,10 @@ export default function PracticeResultPage() {
                       transition={{ delay: 0.2 + i * 0.15, type: 'spring' }}
                     >
                       <Star
-                        className={`w-10 h-10 ${
-                          isEarned
+                        className={`w-10 h-10 ${isEarned
                             ? 'text-amber-400 fill-amber-400 drop-shadow-md'
                             : 'text-slate-200 fill-slate-100'
-                        }`}
+                          }`}
                       />
                     </motion.div>
                   )
@@ -373,7 +372,7 @@ export default function PracticeResultPage() {
 
           {/* ── RIGHT DESKTOP COLUMN (Next Steps & Desk Items) (3 cols) ── */}
           <div className="hidden lg:flex lg:col-span-3 flex-col space-y-4">
-            
+
             {/* Widget 1: Next Steps Card */}
             <div className="bg-white/95 backdrop-blur-md rounded-2xl p-4 sm:p-5 border-2 border-purple-200 shadow-md space-y-3 text-left">
               <h4 className="font-display font-black text-sm text-slate-900 border-b border-slate-100 pb-2 flex items-center justify-between">
@@ -398,7 +397,7 @@ export default function PracticeResultPage() {
                 <Target className="w-4 h-4 text-purple-500" />
                 <span>NEXT GOALS</span>
               </h4>
-              
+
               <div className="space-y-2">
                 <button
                   onClick={handleRetry}
@@ -425,7 +424,7 @@ export default function PracticeResultPage() {
             {/* Wooden Desk Note & Mug */}
             <div className="bg-[#fef08a] border-2 border-amber-300 p-3 rounded-xl shadow-md text-center transform -rotate-2">
               <p className="font-handwriting font-bold text-xs text-amber-950 leading-snug">
-                Mistakes today.<br/>Mastery tomorrow! 💖
+                Mistakes today.<br />Mastery tomorrow! 💖
               </p>
             </div>
 
@@ -483,43 +482,41 @@ export default function PracticeResultPage() {
               <div className="flex-1 overflow-y-auto space-y-3 pr-1 scrollbar-thin scrollbar-thumb-slate-300">
                 {result.questionResults?.map((qr, i) => {
                   const originalQuestion = questions.find(q => q.id === qr.questionId);
-                  
+
                   return (
-                  <div key={qr.questionId} className={`p-4 rounded-2xl border flex flex-col gap-2 text-xs font-bold bg-white ${
-                    qr.isCorrect ? 'border-emerald-200 bg-emerald-50/20' : 'border-rose-200 bg-rose-50/20'
-                  }`}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black text-white ${
-                          qr.isCorrect ? 'bg-emerald-500' : 'bg-rose-500'
-                        }`}>
-                          {qr.isCorrect ? '✓' : '✕'}
-                        </span>
-                        <span className="font-extrabold text-slate-800 text-sm">Q{i + 1}</span>
-                      </div>
-                      <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-lg ${
-                        qr.isCorrect ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+                    <div key={qr.questionId} className={`p-4 rounded-2xl border flex flex-col gap-2 text-xs font-bold bg-white ${qr.isCorrect ? 'border-emerald-200 bg-emerald-50/20' : 'border-rose-200 bg-rose-50/20'
                       }`}>
-                        {qr.isCorrect ? 'Correct' : 'Incorrect'}
-                      </span>
-                    </div>
-
-                    <p className="text-slate-800 font-black text-sm leading-relaxed border-b border-slate-100/50 pb-2">
-                      {originalQuestion?.text || 'Unknown Question'}
-                    </p>
-
-                    <p className="text-slate-600 font-bold text-xs leading-relaxed pt-1">
-                      {qr.explanation || (qr.isCorrect ? 'Correct answer!' : 'Incorrect answer.')}
-                    </p>
-
-                    {!qr.isCorrect && (
-                      <div className="mt-1 p-2.5 bg-rose-50 border border-rose-200/80 rounded-xl space-y-1 text-xs">
-                        <p className="text-rose-600 font-bold">Your answer: {qr.selectedAnswer || '(none)'}</p>
-                        <p className="text-emerald-700 font-bold">Correct answer: {qr.correctAnswer}</p>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black text-white ${qr.isCorrect ? 'bg-emerald-500' : 'bg-rose-500'
+                            }`}>
+                            {qr.isCorrect ? '✓' : '✕'}
+                          </span>
+                          <span className="font-extrabold text-slate-800 text-sm">Q{i + 1}</span>
+                        </div>
+                        <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-lg ${qr.isCorrect ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+                          }`}>
+                          {qr.isCorrect ? 'Correct' : 'Incorrect'}
+                        </span>
                       </div>
-                    )}
-                  </div>
-                )})}
+
+                      <p className="text-slate-800 font-black text-sm leading-relaxed border-b border-slate-100/50 pb-2">
+                        {originalQuestion?.text || 'Unknown Question'}
+                      </p>
+
+                      <p className="text-slate-600 font-bold text-xs leading-relaxed pt-1">
+                        {qr.explanation || (qr.isCorrect ? 'Correct answer!' : 'Incorrect answer.')}
+                      </p>
+
+                      {!qr.isCorrect && (
+                        <div className="mt-1 p-2.5 bg-rose-50 border border-rose-200/80 rounded-xl space-y-1 text-xs">
+                          <p className="text-rose-600 font-bold">Your answer: {qr.selectedAnswer || '(none)'}</p>
+                          <p className="text-emerald-700 font-bold">Correct answer: {qr.correctAnswer}</p>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
 
               <div className="pt-2 border-t border-slate-100">

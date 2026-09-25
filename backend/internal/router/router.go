@@ -30,6 +30,7 @@ func New(fb *config.FirebaseClients, cfg *config.Config, mediaSvc media.MediaSer
 	notifRepo         := repository.NewNotificationRepository(fb.Firestore)
 	badgeRepo         := repository.NewBadgeRepository(fb.Firestore)
 	questionAdminRepo := repository.NewQuestionAdminRepository(fb.Firestore)
+	cmsRepo           := repository.NewCMSRepository(fb.Firestore)
 
 	// ─── Services ────────────────────────────────────────────────────────────
 	authService       := service.NewAuthService(userRepo)
@@ -51,6 +52,7 @@ func New(fb *config.FirebaseClients, cfg *config.Config, mediaSvc media.MediaSer
 	)
 
 	practiceService := service.NewPracticeService(quizRepo, attemptRepo)
+	cmsService      := service.NewCMSService(cmsRepo, notifRepo)
 
 	// ─── Handlers ─────────────────────────────────────────────────────────────
 	authHandler         := handler.NewAuthHandler(authService)
@@ -61,6 +63,7 @@ func New(fb *config.FirebaseClients, cfg *config.Config, mediaSvc media.MediaSer
 	badgeHandler        := handler.NewBadgeHandler(badgeRepo)
 	practiceHandler     := handler.NewPracticeHandler(practiceService)
 	leaderboardHandler  := handler.NewLeaderboardHandler(progressRepo, userRepo)
+	cmsHandler          := handler.NewCMSHandler(cmsService, mediaSvc)
 
 	// ─── Middleware ───────────────────────────────────────────────────────────
 	authMiddleware := middleware.AuthMiddleware(fb.Auth)
@@ -94,6 +97,7 @@ func New(fb *config.FirebaseClients, cfg *config.Config, mediaSvc media.MediaSer
 
 		// ── Quiz Engine ───────────────────────────────────────────────────────
 		r.Post("/quizzes/{quizID}/start", quizHandler.StartAttempt)
+		r.Post("/attempts/{attemptID}/check-answer", quizHandler.CheckAnswer) // per-question instant feedback
 		r.Post("/attempts/{attemptID}/submit", quizHandler.SubmitAttempt)
 		r.Get("/attempts/{attemptID}", quizHandler.GetAttempt)
 
@@ -136,9 +140,38 @@ func New(fb *config.FirebaseClients, cfg *config.Config, mediaSvc media.MediaSer
 			r.Get("/units", curriculumHandler.ListUnitsRaw)
 			r.Get("/units/{unitID}/chapters", curriculumHandler.ListChaptersRaw)
 
-			// Admin question management
+			// Admin question management (legacy)
 			r.Get("/questions", adminHandler.ListQuestions)
 			r.Post("/questions/{questionID}/approval", adminHandler.SetQuestionApproval)
+
+			// ── Admin CMS — Full Curriculum Management ─────────────────────
+			// Units
+			r.Get("/cms/units", cmsHandler.ListUnitsAdmin)
+			r.Post("/cms/units", cmsHandler.CreateUnit)
+			r.Get("/cms/units/{unitID}", cmsHandler.GetUnit)
+			r.Patch("/cms/units/{unitID}", cmsHandler.UpdateUnit)
+
+			// Chapters (within unit)
+			r.Get("/cms/units/{unitID}/chapters", cmsHandler.ListChaptersAdmin)
+			r.Post("/cms/units/{unitID}/chapters", cmsHandler.CreateChapter)
+
+			// Chapter detail (cross-unit)
+			r.Get("/cms/chapters/{chapterID}", cmsHandler.GetChapter)
+			r.Patch("/cms/chapters/{chapterID}", cmsHandler.UpdateChapter)
+
+			// Quiz (within chapter)
+			r.Post("/cms/chapters/{chapterID}/quiz", cmsHandler.CreateQuiz)
+			r.Get("/cms/quizzes/{quizID}", cmsHandler.GetQuizAdmin)
+			r.Patch("/cms/quizzes/{quizID}", cmsHandler.UpdateQuiz)
+
+			// Questions (within quiz)
+			r.Get("/cms/quizzes/{quizID}/questions", cmsHandler.ListQuestionsAdmin)
+			r.Post("/cms/quizzes/{quizID}/questions", cmsHandler.CreateQuestion)
+			r.Patch("/cms/questions/{questionID}", cmsHandler.UpdateQuestion)
+			r.Delete("/cms/questions/{questionID}", cmsHandler.ArchiveQuestion)
+
+			// Media upload
+			r.Post("/cms/media/upload", cmsHandler.UploadMedia)
 		})
 	})
 

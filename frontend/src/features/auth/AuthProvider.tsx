@@ -11,6 +11,10 @@ import { queryClient } from '@/lib/queryClient'
  *
  * It does NOT render any UI — it's a pure side-effect hook that should be
  * used in App.tsx to bootstrap the auth state on mount.
+ *
+ * IMPORTANT: setLoading(false) is called LAST in every branch so that
+ * ProtectedRoute never sees isLoading=false while profile is still null.
+ * This prevents the "refresh lands on /login" bug.
  */
 export function useAuthProvider() {
   const { setFirebaseUser, setProfile, setLoading, setProfileLoaded, reset } = useAuthStore()
@@ -44,6 +48,9 @@ export function useAuthProvider() {
         setProfileLoaded(true)
       }
 
+      // MUST be last — only mark loading done after profile state is fully set.
+      // This ensures ProtectedRoute never sees (isLoading=false, profile=null)
+      // which would flash a redirect to /login on every page refresh.
       setLoading(false)
     })
 

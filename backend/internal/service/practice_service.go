@@ -118,6 +118,8 @@ func (s *PracticeService) StartPractice(ctx context.Context, userID, quizID stri
 }
 
 // SubmitPractice grades answers and returns results WITHOUT any progression side effects.
+// It merges client-submitted answers with server-stored answers (from per-question check-answer
+// calls) so the score is always accurate regardless of which path was used.
 func (s *PracticeService) SubmitPractice(ctx context.Context, userID, attemptID string, submissions []domain.AnswerSubmission) (*PracticeResult, error) {
 	attempt, err := s.attemptRepo.GetByID(ctx, attemptID)
 	if err != nil {
@@ -131,9 +133,22 @@ func (s *PracticeService) SubmitPractice(ctx context.Context, userID, attemptID 
 		return nil, errors.New("not a practice attempt")
 	}
 
+	// Build submission map from client payload
 	submissionMap := make(map[string]domain.AnswerSubmission, len(submissions))
 	for _, sub := range submissions {
 		submissionMap[sub.QuestionID] = sub
+	}
+
+	// Merge with server-stored answers (from check-answer calls) as authoritative fallback.
+	// Server-stored answers take precedence over client payload to prevent tampering.
+	for _, stored := range attempt.Answers {
+		if _, alreadyInClient := submissionMap[stored.QuestionID]; !alreadyInClient {
+			submissionMap[stored.QuestionID] = domain.AnswerSubmission{
+				QuestionID:     stored.QuestionID,
+				SelectedAnswer: stored.SelectedAnswer,
+				TimeTakenMs:    stored.TimeTakenMs,
+			}
+		}
 	}
 
 	questionResults := make([]domain.QuestionResult, 0, len(attempt.QuestionOrder))
@@ -194,3 +209,4 @@ func (s *PracticeService) SubmitPractice(ctx context.Context, userID, attemptID 
 		MaxCombo:        maxCombo,
 	}, nil
 }
+

@@ -14,6 +14,7 @@ import api from '@/lib/api'
 import type { User } from '@/types'
 import UnlockRequestQueue from './UnlockRequestQueue'
 import { useAdminUnlockRequests } from '../student/hooks/useNotifications'
+import { AdminCMS } from './AdminCMS'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -153,7 +154,7 @@ const navItems: { id: AdminTab, icon: any, label: string }[] = [
   { id: 'users',       icon: Users,           label: 'Users' },
   { id: 'unlocks',     icon: AlertTriangle,   label: 'Unlock Requests' },
   { id: 'curriculum',  icon: BookOpen,        label: 'Curriculum' },
-  { id: 'questions',   icon: HelpCircle,      label: 'Questions' },
+  // { id: 'questions',   icon: HelpCircle,      label: 'Questions' }, // Commented out per request
   { id: 'leaderboard', icon: BarChart2,       label: 'Leaderboard' },
 ]
 
@@ -200,13 +201,15 @@ function AdminSidebar({ active, onSelect, open, onClose }: {
           {navItems.map(item => {
             const isActive = active === item.id
             return (
-              <button
+              <motion.button
                 key={item.id}
+                whileHover={{ scale: 1.015, x: 2 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={() => onSelect(item.id)}
                 className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-black transition-all duration-150 cursor-pointer ${
                   isActive
-                    ? 'bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-transparent text-amber-700 border border-amber-300 shadow-2xs'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
+                    ? 'bg-gradient-to-r from-amber-500/20 via-orange-500/15 to-amber-50 text-amber-800 border-2 border-amber-300 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/90'
                 }`}
               >
                 <div className="flex items-center gap-3">
@@ -214,11 +217,11 @@ function AdminSidebar({ active, onSelect, open, onClose }: {
                   <span>{item.label}</span>
                 </div>
                 {item.id === 'unlocks' && pendingCount > 0 && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500 text-white shadow-2xs">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500 text-white shadow-xs animate-pulse">
                     {pendingCount}
                   </span>
                 )}
-              </button>
+              </motion.button>
             )
           })}
         </nav>
@@ -661,107 +664,11 @@ function UnlocksTab() {
   )
 }
 
-// ─── Curriculum Tab ───────────────────────────────────────────────────────────
-
-interface RawUnit {
-  id: string
-  title: string
-  description: string
-  order: number
-  chapterCount: number
-}
-
-interface RawChapter {
-  id: string
-  title: string
-  order: number
-  quizId: string
-  lessonVideoUrl: string
-  pdfUrl: string
-}
+// ─── Curriculum Tab ─────────────────────────────────────────────────────────
+// Delegates to AdminCMS which provides the full Unit→Chapter→Quiz→Question CMS.
 
 function CurriculumTab() {
-  const { data: units, isLoading } = useQuery({
-    queryKey: ['admin', 'units-raw'],
-    queryFn: () => api.get<{ units: RawUnit[] }>('/admin/units').then(r => r.data.units),
-  })
-
-  return (
-    <div className="space-y-4 text-left">
-      <div className="flex items-center justify-between border-b border-slate-200/80 pb-3">
-        <div>
-          <h2 className="font-display font-black text-slate-900 text-lg">Curriculum Management</h2>
-          <p className="text-xs text-slate-500 font-extrabold">Inspect and manage units & chapters.</p>
-        </div>
-        <span className="text-xs text-slate-500 font-bold">{units?.length ?? 0} units</span>
-      </div>
-
-      {isLoading ? (
-        <div className="space-y-3">
-          {[1, 2].map(i => <div key={i} className="h-20 bg-slate-100 rounded-3xl animate-pulse" />)}
-        </div>
-      ) : !units?.length ? (
-        <div className="bg-white border-2 border-dashed border-slate-200 p-8 rounded-3xl text-center">
-          <BookOpen size={28} className="text-slate-400 mx-auto mb-3" />
-          <p className="text-slate-600 font-bold text-sm">No units found.</p>
-          <p className="text-slate-400 text-xs mt-1">Run backend seed command to populate curriculum.</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {units.map(unit => <AdminUnitCard key={unit.id} unit={unit} />)}
-        </div>
-      )}
-    </div>
-  )
-}
-
-function AdminUnitCard({ unit }: { unit: RawUnit }) {
-  const [open, setOpen] = useState(false)
-  const { data: chapters, isLoading } = useQuery({
-    queryKey: ['admin', 'chapters-raw', unit.id],
-    queryFn: () => api.get<{ chapters: RawChapter[] }>(`/admin/units/${unit.id}/chapters`).then(r => r.data.chapters),
-    enabled: open,
-  })
-
-  return (
-    <div className="bg-white border border-slate-200/90 rounded-3xl overflow-hidden shadow-xs">
-      <button
-        onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center gap-3 p-4 hover:bg-slate-50 transition-colors text-left cursor-pointer"
-      >
-        <div className="w-10 h-10 rounded-2xl bg-amber-100 border border-amber-200 flex items-center justify-center text-sm font-black text-amber-700 shrink-0">
-          {unit.order}
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-slate-900 text-sm font-black truncate">{unit.title}</p>
-          <p className="text-slate-500 text-xs font-bold">{unit.chapterCount} chapters</p>
-        </div>
-        <ChevronRight size={16} className={`text-slate-400 transition-transform ${open ? 'rotate-90' : ''}`} />
-      </button>
-
-      {open && (
-        <div className="border-t border-slate-100 bg-slate-50/60 divide-y divide-slate-100">
-          {isLoading ? (
-            <div className="p-4 text-slate-500 text-xs text-center font-bold">Loading chapters...</div>
-          ) : chapters?.map((ch) => (
-            <div key={ch.id} className="flex items-center gap-3 px-5 py-3">
-              <div className="w-7 h-7 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center shrink-0">
-                <BookOpen size={14} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-slate-800 text-xs font-black truncate">Ch {ch.order}: {ch.title}</p>
-                <p className="text-slate-500 text-[10px] font-mono">Quiz: {ch.quizId}</p>
-              </div>
-              <div className="flex gap-1.5">
-                {ch.lessonVideoUrl && <span className="text-[10px] font-black bg-purple-100 text-purple-700 border border-purple-200 px-2 py-0.5 rounded-full">Video</span>}
-                {ch.pdfUrl && <span className="text-[10px] font-black bg-sky-100 text-sky-700 border border-sky-200 px-2 py-0.5 rounded-full">PDF</span>}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
+  return <AdminCMS />
 }
 
 // ─── Row components ───────────────────────────────────────────────────────────
@@ -775,8 +682,14 @@ const statusColors: Record<string, string> = {
 
 function UserRow({ user, onClick }: { user: User, onClick?: () => void }) {
   return (
-    <div onClick={onClick} className="flex items-center gap-3 px-5 py-3.5 hover:bg-slate-50 transition-colors cursor-pointer">
-      <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-amber-500/20 to-purple-600/20 border border-slate-200 flex items-center justify-center text-sm font-black text-slate-800 shrink-0">
+    <motion.div
+      whileHover={{ scale: 1.005, x: 2 }}
+      whileTap={{ scale: 0.995 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 22 }}
+      onClick={onClick}
+      className="flex items-center gap-3 px-5 py-3.5 hover:bg-slate-50/90 transition-colors cursor-pointer border-b border-slate-100 last:border-b-0"
+    >
+      <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-amber-500/20 via-orange-500/20 to-purple-600/20 border border-slate-200 flex items-center justify-center text-sm font-black text-slate-800 shrink-0 shadow-2xs">
         {user.displayName[0]?.toUpperCase()}
       </div>
       <div className="flex-1 min-w-0">
@@ -788,9 +701,9 @@ function UserRow({ user, onClick }: { user: User, onClick?: () => void }) {
           {user.accountStatus}
         </span>
         <span className="text-slate-500 text-xs font-bold capitalize hidden sm:block">{user.role}</span>
-        <ChevronRight size={16} className="text-slate-400" />
+        <ChevronRight size={16} className="text-slate-400 group-hover:text-slate-700 transition-colors" />
       </div>
-    </div>
+    </motion.div>
   )
 }
 

@@ -1,9 +1,10 @@
 import { create } from 'zustand'
+import { persist, createJSONStorage } from 'zustand/middleware'
 import type { QuestionPublic, AnswerSubmission, AttemptResult } from '@/types'
 
 // Quiz session state — only for the duration of an active quiz attempt.
 // All authoritative data lives in Firestore; this is purely UI/session state.
-// The store is reset when the result is acknowledged or a new quiz starts.
+// Persisted to sessionStorage so page refresh does not lose the active session.
 //
 // SECURITY: correctAnswer is never stored here. Questions come from
 // the backend start response which strips correctAnswer before sending.
@@ -38,31 +39,49 @@ const initialState = {
   status:       'idle' as QuizStatus,
 }
 
-export const useQuizSessionStore = create<QuizSessionState>((set, get) => ({
-  ...initialState,
+export const useQuizSessionStore = create<QuizSessionState>()(
+  persist(
+    (set, get) => ({
+      ...initialState,
 
-  startSession: (attemptId, quizId, questions) =>
-    set({ ...initialState, attemptId, quizId, questions, status: 'in_progress' }),
+      startSession: (attemptId, quizId, questions) =>
+        set({ ...initialState, attemptId, quizId, questions, status: 'in_progress' }),
 
-  recordAnswer: (answer) =>
-    set(s => ({
-      answers: [
-        ...s.answers.filter(a => a.questionId !== answer.questionId),
-        answer,
-      ],
-    })),
+      recordAnswer: (answer) =>
+        set(s => ({
+          answers: [
+            ...s.answers.filter(a => a.questionId !== answer.questionId),
+            answer,
+          ],
+        })),
 
-  nextQuestion: () =>
-    set(s => ({ currentIndex: Math.min(s.currentIndex + 1, s.questions.length - 1) })),
+      nextQuestion: () =>
+        set(s => ({ currentIndex: Math.min(s.currentIndex + 1, s.questions.length - 1) })),
 
-  setResult: (result) =>
-    set({ result, status: 'completed' }),
+      setResult: (result) =>
+        set({ result, status: 'completed' }),
 
-  setStatus: (status) =>
-    set({ status }),
+      setStatus: (status) =>
+        set({ status }),
 
-  reset: () => set(initialState),
-}))
+      reset: () => set(initialState),
+    }),
+    {
+      name: 'grammoquest-quiz-session',
+      storage: createJSONStorage(() => sessionStorage),
+      // Only persist the data fields, not the action functions
+      partialize: (state) => ({
+        attemptId:    state.attemptId,
+        quizId:       state.quizId,
+        questions:    state.questions,
+        currentIndex: state.currentIndex,
+        answers:      state.answers,
+        result:       state.result,
+        status:       state.status,
+      }),
+    }
+  )
+)
 
 // ─── Selector hooks ───────────────────────────────────────────────────────────
 

@@ -18,6 +18,7 @@ import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
 import { useProgress } from './hooks/useCurriculum'
+import { useUserLeaderboardRank, getTop3RankBadge } from './hooks/useBadges'
 import { auth } from '@/lib/firebase'
 
 interface LeaderboardEntry {
@@ -58,6 +59,8 @@ export default function LeaderboardPage() {
   const navigate = useNavigate()
   const { profile } = useAuthStore()
   const { data: progress } = useProgress()
+  const { data: userRank } = useUserLeaderboardRank()
+  const top3Badge = getTop3RankBadge(userRank)
   const [period, setPeriod] = useState<Period>('alltime')
   const { data, isLoading } = useLeaderboard(period)
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
@@ -125,14 +128,15 @@ export default function LeaderboardPage() {
             <div className="relative border-l border-slate-200 pl-2 sm:pl-3">
               <button
                 onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-                className="flex items-center gap-2 py-1 px-1.5 rounded-2xl hover:bg-slate-100 transition-colors text-left group"
+                className="flex items-center gap-2 py-1 px-1.5 rounded-2xl hover:bg-slate-100 transition-colors text-left group cursor-pointer"
               >
-                <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-[#5865f2] via-indigo-500 to-purple-600 text-white font-black text-xs flex items-center justify-center shadow-md border-2 border-white uppercase">
+                <div className={`w-9 h-9 rounded-2xl bg-gradient-to-tr from-[#5865f2] via-indigo-500 to-purple-600 text-white font-black text-xs flex items-center justify-center shadow-md border-2 border-white uppercase ${top3Badge ? top3Badge.haloClass : ''}`}>
                   {firstName.charAt(0)}
                 </div>
                 <div className="hidden sm:block leading-tight">
                   <span className="text-xs font-black text-slate-900 flex items-center gap-1">
                     {firstName}
+                    {top3Badge && <span>{top3Badge.icon}</span>}
                     <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
                   </span>
                 </div>
@@ -149,8 +153,16 @@ export default function LeaderboardPage() {
                       className="absolute right-0 top-12 w-60 bg-white rounded-2xl shadow-2xl border border-slate-200 p-2 z-40 space-y-1"
                     >
                       <div className="p-3 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl mb-1 border border-indigo-100">
-                        <p className="font-black text-xs text-slate-900">{fullName}</p>
+                        <p className="font-black text-xs text-slate-900 flex items-center gap-1">
+                          {fullName}
+                          {top3Badge && <span>{top3Badge.icon}</span>}
+                        </p>
                         <p className="text-[10px] text-slate-500 font-semibold truncate mt-0.5">{profile?.email}</p>
+                        {top3Badge && (
+                          <div className={`mt-1.5 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] ${top3Badge.badgeBg}`}>
+                            <span>{top3Badge.shortLabel}</span>
+                          </div>
+                        )}
                       </div>
                       <Link to="/progress" onClick={() => setProfileMenuOpen(false)} className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-100">
                         <BarChart2 className="w-4 h-4 text-[#5865f2]" />
@@ -232,32 +244,43 @@ export default function LeaderboardPage() {
           {/* 3-Column Adventure Layout */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
-            {/* Left Mascot & Carved Stone Column (3 cols) */}
+            {/* Left Mascot & Quick Quest Column (3 cols) */}
             <div className="hidden lg:flex flex-col items-center justify-center lg:col-span-3 space-y-4 pt-2">
-              <div className="w-full bg-white/90 backdrop-blur-md rounded-3xl p-6 border-2 border-white shadow-xl text-center space-y-4">
+              <div className="w-full bg-white/95 backdrop-blur-md rounded-3xl p-6 border-2 border-white shadow-xl text-center space-y-4">
 
                 {/* Fox Mascot Artwork Circle */}
                 <div className="relative group">
-                  <div className="w-40 h-40 rounded-3xl bg-gradient-to-tr from-amber-400 via-orange-400 to-amber-500 p-1.5 shadow-2xl border-4 border-white mx-auto flex items-center justify-center text-8xl group-hover:scale-105 transition-transform duration-300 relative overflow-hidden">
+                  <div className="w-36 h-36 rounded-3xl bg-gradient-to-tr from-amber-400 via-orange-400 to-amber-500 p-1.5 shadow-xl border-4 border-white mx-auto flex items-center justify-center text-7xl group-hover:scale-105 transition-transform duration-300 relative overflow-hidden">
                     🦊
-                    <div className="absolute top-2 right-2 px-2 py-0.5 bg-white/30 rounded-full text-[10px] font-black text-white">Grammo</div>
+                    <div className="absolute top-2 right-2 px-2.5 py-0.5 bg-black/25 rounded-full text-[10px] font-black text-white backdrop-blur-xs">
+                      Grammo
+                    </div>
                   </div>
                 </div>
 
                 {/* Wooden Signpost Badge */}
-                <div className="bg-gradient-to-b from-amber-800 via-amber-850 to-amber-950 text-amber-100 px-4 py-3 rounded-2xl border-2 border-amber-900 shadow-lg font-display font-black text-xs uppercase tracking-wider text-center">
+                <div className="bg-gradient-to-r from-[#5865f2] to-indigo-600 text-white px-4 py-3 rounded-2xl border border-indigo-400 shadow-md font-display font-black text-xs uppercase tracking-wider text-center">
                   Small Steps <br />
                   <span className="text-amber-300 text-sm">Big Writers! ✨</span>
                 </div>
 
-                {/* Rock Carving Box */}
-                <div className="bg-gradient-to-b from-slate-200 via-slate-100 to-slate-300 border-2 border-slate-400 p-4 rounded-3xl shadow-inner text-center">
-                  <p className="font-display font-black text-xs text-slate-700 uppercase tracking-widest leading-relaxed">
-                    LEARN <br />
-                    PRACTICE <br />
-                    IMPROVE <br />
-                    <span className="text-amber-600 font-extrabold text-sm">GROW</span>
-                  </p>
+                {/* Daily Quest Rules Card */}
+                <div className="bg-slate-50 border border-slate-200/80 p-4 rounded-2xl shadow-xs text-left space-y-2">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Daily Quest Rules</p>
+                  <div className="space-y-2 text-xs font-extrabold text-slate-700">
+                    <div className="flex items-center gap-2">
+                      <span className="w-5 h-5 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center text-[10px] font-black shrink-0">1</span>
+                      <span>Earn XP by taking daily quizzes</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-5 h-5 rounded-lg bg-sky-100 text-sky-600 flex items-center justify-center text-[10px] font-black shrink-0">2</span>
+                      <span>Build long streak combos</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-5 h-5 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center text-[10px] font-black shrink-0">3</span>
+                      <span>Claim Top 3 Leader status!</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -291,24 +314,72 @@ export default function LeaderboardPage() {
                   </div>
                 ) : (
                   <>
-                    {/* Top 3 Podium Cards */}
-                    {(data?.leaderboard ?? []).length >= 3 && (
+                    {/* V.I.P. Champion Spotlight Banner (If Current User is Top 3) */}
+                    {top3Badge && (
                       <motion.div
-                        initial={{ opacity: 0, y: 10 }}
+                        initial={{ opacity: 0, y: -5 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="grid grid-cols-3 gap-3 items-end pt-2 pb-2"
+                        className="p-5 rounded-3xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white border-2 border-amber-300 shadow-xl flex items-center justify-between gap-4 relative overflow-hidden"
                       >
-                        {/* 2nd place */}
-                        <PodiumCard entry={(data?.leaderboard ?? [])[1]} medal={MEDALS[1]} rank={2} />
-                        {/* 1st place — taller gold */}
-                        <PodiumCard entry={(data?.leaderboard ?? [])[0]} medal={MEDALS[0]} rank={1} tall />
-                        {/* 3rd place */}
-                        <PodiumCard entry={(data?.leaderboard ?? [])[2]} medal={MEDALS[2]} rank={3} />
+                        <div className="flex items-center gap-3.5 relative z-10">
+                          <span className="text-4xl filter drop-shadow-md select-none">{top3Badge.icon}</span>
+                          <div>
+                            <span className="text-[10px] font-black uppercase tracking-widest bg-black/25 text-amber-100 px-2.5 py-0.5 rounded-full shadow-2xs">
+                              {top3Badge.shortLabel} Spotlight
+                            </span>
+                            <h3 className="font-display font-black text-lg sm:text-xl text-white tracking-tight mt-0.5 drop-shadow-xs">
+                              {top3Badge.title}
+                            </h3>
+                            <p className="text-amber-50 text-xs sm:text-sm font-extrabold drop-shadow-2xs mt-0.5">
+                              {top3Badge.bannerMessage}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="hidden sm:flex items-center gap-1.5 bg-white/20 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-white/40 text-xs font-black text-white shadow-xs shrink-0">
+                          <Star className="w-4 h-4 fill-amber-300 text-amber-300" />
+                          <span>VIP Hero</span>
+                        </div>
                       </motion.div>
+                    )}
+                    {/* Top 3 Podium Cards & 3D Pedestals */}
+                    {(data?.leaderboard ?? []).length >= 3 && (
+                      <div className="space-y-0 pt-1 pb-1">
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="grid grid-cols-3 gap-3 items-end relative z-10 px-1"
+                        >
+                          {/* 2nd place — Silver */}
+                          <div className="flex flex-col items-center">
+                            <PodiumCard entry={(data?.leaderboard ?? [])[1]} medal={MEDALS[1]} rank={2} />
+                            <div className="w-[85%] bg-gradient-to-b from-[#e9ecef] to-[#ced4da] border-t border-[#f8f9fa] h-5 rounded-b-xl flex items-center justify-center font-display font-extrabold text-[9px] text-[#495057] shadow-inner">
+                              2ND
+                            </div>
+                          </div>
+
+                          {/* 1st place — Gold Champion */}
+                          <div className="flex flex-col items-center relative">
+                            {/* Ambient Gold Aura Glow */}
+                            <div className="absolute inset-0 bg-[#fcc419]/20 blur-xl rounded-full -z-10" />
+                            <PodiumCard entry={(data?.leaderboard ?? [])[0]} medal={MEDALS[0]} rank={1} tall />
+                            <div className="w-[90%] bg-gradient-to-b from-[#ffec99] to-[#fcc419] border-t border-[#fffbe6] h-7 rounded-b-xl flex items-center justify-center font-display font-black text-[10px] text-[#b06500] shadow-inner tracking-widest">
+                              1ST
+                            </div>
+                          </div>
+
+                          {/* 3rd place — Bronze */}
+                          <div className="flex flex-col items-center">
+                            <PodiumCard entry={(data?.leaderboard ?? [])[2]} medal={MEDALS[2]} rank={3} />
+                            <div className="w-[85%] bg-gradient-to-b from-[#ffd8a8] to-[#ffa94d] border-t border-[#fff0e6] h-4 rounded-b-xl flex items-center justify-center font-display font-extrabold text-[8px] text-[#d9480f] shadow-inner">
+                              3RD
+                            </div>
+                          </div>
+                        </motion.div>
+                      </div>
                     )}
 
                     {/* Rankings List (4+) */}
-                    <div className="space-y-2.5 pt-2 border-t border-slate-100">
+                    <div className="space-y-2 pt-2 border-t border-slate-100">
                       {(data?.leaderboard ?? []).slice(3).map((entry, idx) => (
                         <motion.div
                           key={entry.userId}
@@ -322,18 +393,18 @@ export default function LeaderboardPage() {
 
                       {/* Empty state */}
                       {(data?.leaderboard ?? []).length === 0 && (
-                        <div className="text-center py-10 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                          <p className="text-4xl mb-2">🏆</p>
-                          <p className="text-slate-700 font-extrabold text-sm">No rankings for this period yet.</p>
-                          <p className="text-slate-400 font-bold text-xs mt-1">Complete quizzes to claim the top spot!</p>
+                        <div className="text-center py-8 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                          <p className="text-3xl mb-1">🏆</p>
+                          <p className="text-slate-700 font-extrabold text-xs">No rankings for this period yet.</p>
+                          <p className="text-slate-400 font-bold text-[10px] mt-0.5">Complete quizzes to claim the top spot!</p>
                         </div>
                       )}
                     </div>
 
                     {/* Caller's own entry if outside top 10 */}
                     {data?.callerEntry && (
-                      <div className="pt-3 border-t border-slate-200">
-                        <p className="text-slate-500 font-black text-xs mb-2 text-center uppercase tracking-wider">Your Position</p>
+                      <div className="pt-2 border-t border-slate-200">
+                        <p className="text-slate-500 font-black text-[10px] mb-1 text-center uppercase tracking-wider">Your Position</p>
                         <EntryRow entry={data.callerEntry} highlight />
                       </div>
                     )}
@@ -346,14 +417,41 @@ export default function LeaderboardPage() {
 
             {/* Right Directional Castle Signpost (3 cols) */}
             <div className="hidden lg:flex flex-col items-center justify-center lg:col-span-3 space-y-4 pt-2">
-              <div className="bg-gradient-to-b from-amber-900 via-amber-850 to-amber-950 text-amber-100 p-6 rounded-3xl border-4 border-amber-950 shadow-2xl text-center space-y-4 w-full">
-                <span className="text-4xl block animate-bounce">🏰</span>
-                <p className="font-display font-black text-sm uppercase tracking-widest text-amber-300">Grammar Castle</p>
-                <div className="space-y-3">
-                  <div className="bg-gradient-to-r from-amber-800 to-amber-900 py-3 px-4 rounded-2xl border-2 border-amber-700 font-black text-xs tracking-widest uppercase shadow-md hover:scale-105 transition-transform">EXPLORE</div>
-                  <div className="bg-gradient-to-r from-amber-800 to-amber-900 py-3 px-4 rounded-2xl border-2 border-amber-700 font-black text-xs tracking-widest uppercase shadow-md hover:scale-105 transition-transform">LEARN</div>
-                  <div className="bg-gradient-to-r from-amber-800 to-amber-900 py-3 px-4 rounded-2xl border-2 border-amber-700 font-black text-xs tracking-widest uppercase shadow-md hover:scale-105 transition-transform">PRACTICE</div>
-                  <div className="bg-gradient-to-r from-orange-600 to-amber-600 py-3 px-4 rounded-2xl border-2 border-orange-400 font-black text-xs tracking-widest uppercase text-white shadow-xl hover:scale-105 transition-transform">MASTER</div>
+              <div className="bg-gradient-to-b from-amber-950 via-amber-900 to-amber-950 text-amber-100 p-5 rounded-3xl border-4 border-amber-900 shadow-xl text-center space-y-3 w-full">
+                <span className="text-3xl block filter drop-shadow-sm">🏰</span>
+                <div>
+                  <p className="font-display font-black text-xs uppercase tracking-widest text-amber-300">Grammar Castle</p>
+                  <p className="text-[9px] text-amber-200 font-bold mt-0.5">Choose your next quest</p>
+                </div>
+                <div className="space-y-2">
+                  <button
+                    onClick={() => navigate('/dashboard')}
+                    className="w-full bg-amber-900/90 hover:bg-amber-800 text-amber-100 py-2 px-3 rounded-xl border border-amber-700/80 font-black text-[11px] tracking-widest uppercase shadow-xs flex items-center justify-between transition-all group cursor-pointer"
+                  >
+                    <span>Explore Castle</span>
+                    <span className="group-hover:translate-x-1 transition-transform">➔</span>
+                  </button>
+                  <button
+                    onClick={() => navigate('/units/1')}
+                    className="w-full bg-amber-900/90 hover:bg-amber-800 text-amber-100 py-2 px-3 rounded-xl border border-amber-700/80 font-black text-[11px] tracking-widest uppercase shadow-xs flex items-center justify-between transition-all group cursor-pointer"
+                  >
+                    <span>Learn Lessons</span>
+                    <span className="group-hover:translate-x-1 transition-transform">➔</span>
+                  </button>
+                  <button
+                    onClick={() => navigate('/practice')}
+                    className="w-full bg-amber-900/90 hover:bg-amber-800 text-amber-100 py-2 px-3 rounded-xl border border-amber-700/80 font-black text-[11px] tracking-widest uppercase shadow-xs flex items-center justify-between transition-all group cursor-pointer"
+                  >
+                    <span>Practice Arena</span>
+                    <span className="group-hover:translate-x-1 transition-transform">➔</span>
+                  </button>
+                  <button
+                    onClick={() => navigate('/dashboard')}
+                    className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white py-2 px-3 rounded-xl border border-orange-400 font-black text-[11px] tracking-widest uppercase shadow-md flex items-center justify-between transition-all group cursor-pointer"
+                  >
+                    <span>Master Quiz</span>
+                    <span className="group-hover:translate-x-1 transition-transform">👑</span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -369,24 +467,65 @@ export default function LeaderboardPage() {
 }
 
 function PodiumCard({ entry, medal, rank, tall = false }: { entry: LeaderboardEntry; medal: string; rank: number; tall?: boolean }) {
-  const styles = {
-    1: 'bg-gradient-to-b from-amber-50 to-orange-50 border-amber-300 shadow-xl',
-    2: 'bg-gradient-to-b from-slate-50 to-slate-100 border-slate-300 shadow-md',
-    3: 'bg-gradient-to-b from-amber-900/10 to-amber-800/10 border-amber-400/50 shadow-md',
-  }[rank] ?? 'bg-white border-slate-200'
+  const isGold = rank === 1
+  const isSilver = rank === 2
+  const isBronze = rank === 3
+
+  const cardContainerStyle = isGold
+    ? 'bg-gradient-to-b from-[#fffbe6] to-[#ffec99] border-2 border-[#f5c211] text-[#5c3c00] shadow-[0_12px_24px_-8px_rgba(245,194,17,0.5)]'
+    : isSilver
+    ? 'bg-gradient-to-b from-[#f8f9fa] to-[#e9ecef] border-2 border-[#ced4da] text-[#343a40] shadow-[0_12px_24px_-8px_rgba(173,181,189,0.5)]'
+    : 'bg-gradient-to-b from-[#fff0e6] to-[#ffd8a8] border-2 border-[#ffa94d] text-[#854000] shadow-[0_12px_24px_-8px_rgba(255,169,77,0.5)]'
+
+  const avatarHalo = isGold
+    ? 'ring-4 ring-white/60 shadow-md bg-gradient-to-br from-[#fcc419] to-[#e67700] text-white font-black border-2 border-white'
+    : isSilver
+    ? 'ring-4 ring-white/60 shadow-md bg-gradient-to-br from-[#ced4da] to-[#868e96] text-white font-black border-2 border-white'
+    : 'ring-4 ring-white/60 shadow-md bg-gradient-to-br from-[#ffa94d] to-[#d9480f] text-white font-black border-2 border-white'
+
+  const xpBadgeStyle = isGold
+    ? 'bg-white/90 text-[#e67700] border border-[#fcc419]'
+    : isSilver
+    ? 'bg-white/90 text-[#495057] border border-[#ced4da]'
+    : 'bg-white/90 text-[#d9480f] border border-[#ffa94d]'
 
   return (
-    <div className={`flex flex-col items-center text-center p-3 sm:p-4 rounded-3xl border-2 transition-transform hover:scale-105 ${styles} ${tall ? 'pb-6 pt-5' : 'py-4'}`}>
-      <span className="text-3xl mb-1">{medal}</span>
-      <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-[#5865f2] to-purple-600 text-white font-black text-sm flex items-center justify-center border-2 border-white shadow-md uppercase mb-2">
-        {entry.displayName.charAt(0)}
+    <motion.div
+      whileHover={{ scale: isGold ? 1.03 : 1.02, y: -2 }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 22 }}
+      className={`relative flex flex-col items-center text-center p-2.5 sm:p-3 rounded-2xl cursor-pointer select-none w-full ${cardContainerStyle} ${tall ? 'py-3.5 z-20' : 'py-2.5 z-10'}`}
+    >
+      {/* Crown / Trophy Badge on Top */}
+      <div className="relative mb-1 flex items-center gap-1 select-none">
+        <span className="text-xl sm:text-2xl filter drop-shadow-xs inline-block">
+          {isGold ? '👑' : medal}
+        </span>
       </div>
-      <p className="font-display font-black text-xs text-slate-900 truncate w-full">{entry.displayName.split(' ')[0]}</p>
-      <div className="flex items-center gap-1 mt-1 text-sky-600 font-black text-xs bg-sky-50 px-2 py-0.5 rounded-full border border-sky-200">
-        <Zap className="w-3 h-3 fill-sky-500" />
+
+      {/* Avatar Circle with Badge */}
+      <div className="relative mb-1">
+        <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl text-base sm:text-lg flex items-center justify-center border border-white uppercase ${avatarHalo}`}>
+          {entry.displayName.charAt(0)}
+        </div>
+        {entry.isCurrentUser && (
+          <span className="absolute -bottom-1 -right-1 px-1 py-0.2 bg-rose-600 text-white font-black text-[7px] rounded-full border border-white shadow-2xs tracking-wider uppercase">
+            YOU
+          </span>
+        )}
+      </div>
+
+      {/* Student Name */}
+      <p className="font-display font-black text-xs truncate w-full tracking-tight drop-shadow-2xs mt-0.5">
+        {entry.displayName.split(' ')[0]}
+      </p>
+
+      {/* XP Stat Pill */}
+      <div className={`flex items-center gap-1 mt-1 font-black text-[10px] px-2 py-0.5 rounded-full ${xpBadgeStyle}`}>
+        <Zap className="w-2.5 h-2.5 fill-current" />
         <span>{entry.xp} XP</span>
       </div>
-    </div>
+    </motion.div>
   )
 }
 

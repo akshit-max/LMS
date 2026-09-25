@@ -1,17 +1,17 @@
 import { useNavigate, useParams, Link as RouterLink } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { 
-  ArrowLeft, 
-  Flame, 
-  Zap, 
-  Star, 
-  RotateCcw, 
-  Home, 
-  ChevronDown, 
-  Trophy, 
-  LogOut, 
-  BarChart2, 
-  Target, 
+import {
+  ArrowLeft,
+  Flame,
+  Zap,
+  Star,
+  RotateCcw,
+  Home,
+  ChevronDown,
+  Trophy,
+  LogOut,
+  BarChart2,
+  Target,
   FileText,
   X,
   ArrowRight
@@ -67,7 +67,7 @@ export default function QuizResultPage() {
         particleCount: 32,
         emojis: ['🎉', '🎗️', '🏆', '🌟', '👑', '🍬', '🍦', '✨', '🥳', '🎀', '🎊']
       }
-    } else if (score >= 90) {
+    } else if (passed && score >= 90) {
       return {
         ribbonBadge: '🎉 LEVEL MASTERED! 🎉',
         ribbonBg: 'bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-600 shadow-emerald-500/50',
@@ -79,13 +79,13 @@ export default function QuizResultPage() {
         particleCount: 24,
         emojis: ['⭐', '🎗️', '✨', '🎈', '🏆', '🍦', '🎉', '🎀']
       }
-    } else if (score >= 70) {
+    } else if (passed) {
       return {
-        ribbonBadge: '⚡ KEEP GOING! ⚡',
-        ribbonBg: 'bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 shadow-orange-500/50',
-        scoreColor: 'text-[#f43f5e]',
-        speechBubble: 'Great effort! Mistakes help you learn! 🐾',
-        subtitle: "You're on the right track! A little more practice will get you there.",
+        ribbonBadge: '🎉 LEVEL PASSED! 🎉',
+        ribbonBg: 'bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-600 shadow-emerald-500/50',
+        scoreColor: 'text-[#10b981]',
+        speechBubble: 'Great effort! You passed this level! 🐾',
+        subtitle: "You're on the right track! You have unlocked the next step.",
         mascotSign: 'Practice today, brighter tomorrow! ❤️',
         bottomQuote: 'Every effort you make builds a brighter you!',
         particleCount: 18,
@@ -104,7 +104,7 @@ export default function QuizResultPage() {
         emojis: ['🌱', '✨', '🐾', '💡', '🎈', '💖']
       }
     }
-  }, [score])
+  }, [score, passed])
 
   // Falling particles tailored to score mood (Ribbons, Confetti, Props)
   const celebrationParticles = useMemo(() => {
@@ -130,9 +130,9 @@ export default function QuizResultPage() {
 
   return (
     <div className="min-h-screen w-full relative flex flex-col font-sans selection:bg-[#5865f2] selection:text-white bg-[#0e1626] overflow-x-hidden">
-      
+
       {/* ── 1. BACKGROUND ARTWORK ─────────────────────────────────────────── */}
-      <div 
+      <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat z-0"
         style={{ backgroundImage: `url('/quiz_intro_bg_clean.jpg')` }}
       >
@@ -145,7 +145,7 @@ export default function QuizResultPage() {
           <motion.div
             key={p.id}
             initial={{ y: -80, opacity: 0, rotate: 0 }}
-            animate={{ 
+            animate={{
               y: ['0vh', '108vh'],
               opacity: [0, 1, 1, 0],
               rotate: [0, 60, -60, 120]
@@ -167,9 +167,9 @@ export default function QuizResultPage() {
       {/* ── 3. STICKY TOP NAVBAR ───────────────────────────────────────────── */}
       <header className="bg-white/95 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-30 shadow-xs w-full">
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
-          
+
           {/* Back Button */}
-          <button 
+          <button
             onClick={handleHome}
             className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-xs transition-colors border border-slate-200/80 group shadow-2xs cursor-pointer"
           >
@@ -269,14 +269,14 @@ export default function QuizResultPage() {
 
       {/* ── 4. MAIN RICH RESULTS GRID (MATCHING USER REFERENCE SCREENSHOT) ── */}
       <main className="flex-1 relative z-20 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex flex-col justify-center">
-        
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          
+
           {/* ── LEFT SIDEBAR: MASCOT SPEECH BUBBLES & NOTE CARD (3 cols) ── */}
           <div className="hidden lg:flex lg:col-span-3 flex-col items-center space-y-4 pt-2">
-            
+
             {/* Speech Bubble floating over Fox Mascot */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               transition={{ delay: 0.15 }}
@@ -299,14 +299,14 @@ export default function QuizResultPage() {
 
           {/* ── CENTER COLUMN: MAIN PARCHMENT SCORE CARD (6 cols) ──────────── */}
           <div className="lg:col-span-6 w-full max-w-lg mx-auto">
-            
+
             <motion.div
               initial={{ opacity: 0, scale: 0.92, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               transition={{ type: 'spring', stiffness: 220, damping: 20 }}
               className="bg-[#fffdfa]/95 backdrop-blur-xl rounded-[38px] p-6 sm:p-8 border-4 border-amber-200/90 shadow-[0_30px_70px_-15px_rgba(0,0,0,0.35)] relative overflow-visible text-center space-y-4"
             >
-              
+
               {/* Radial Light Glow behind Parchment Card */}
               {score >= 80 && (
                 <div className="absolute -inset-4 rounded-[48px] bg-gradient-to-r from-amber-400/20 via-orange-400/20 to-yellow-400/20 blur-xl pointer-events-none -z-10 animate-pulse" />
@@ -320,9 +320,9 @@ export default function QuizResultPage() {
                   <Star className="w-8 h-8 text-amber-400 fill-amber-400 drop-shadow-lg -mt-2" />
                   <Star className="w-6 h-6 text-amber-400 fill-amber-400 drop-shadow-md rotate-12" />
                 </div>
-                
+
                 {/* 3D Ribbon Banner */}
-                <motion.div 
+                <motion.div
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ type: 'spring', stiffness: 250, delay: 0.3 }}
@@ -340,7 +340,7 @@ export default function QuizResultPage() {
               </div>
 
               {/* Big Energetic Percentage Score Display framed by Laurel Leaves */}
-              <motion.div 
+              <motion.div
                 initial={{ scale: 0.2, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ type: 'spring', stiffness: 260, damping: 18, delay: 0.35 }}
@@ -370,21 +370,20 @@ export default function QuizResultPage() {
                       )}
                       <motion.div
                         initial={{ scale: 0, opacity: 0, rotate: -45 }}
-                        animate={{ scale: [0, 1.45, 0.9, 1], opacity: 1, rotate: [ -45, 15, 0 ] }}
-                        transition={{ 
-                          delay: 0.45 + i * 0.35, 
+                        animate={{ scale: [0, 1.45, 0.9, 1], opacity: 1, rotate: [-45, 15, 0] }}
+                        transition={{
+                          delay: 0.45 + i * 0.35,
                           duration: 0.5,
-                          type: 'spring', 
-                          stiffness: 280, 
-                          damping: 14 
+                          type: 'spring',
+                          stiffness: 280,
+                          damping: 14
                         }}
                       >
                         <Star
-                          className={`w-11 h-11 sm:w-12 sm:h-12 transition-all duration-300 ${
-                            isEarned
+                          className={`w-11 h-11 sm:w-12 sm:h-12 transition-all duration-300 ${isEarned
                               ? 'text-amber-400 fill-amber-400 drop-shadow-[0_4px_16px_rgba(251,191,36,0.8)]'
                               : 'text-slate-200 fill-slate-100'
-                          }`}
+                            }`}
                         />
                       </motion.div>
                     </div>
@@ -463,7 +462,7 @@ export default function QuizResultPage() {
 
           {/* ── RIGHT SIDEBAR: GOALS & PROGRESS (EXACTLY MATCHING USER SCREENSHOT) ───── */}
           <div className="hidden lg:flex lg:col-span-3 flex-col space-y-4">
-            
+
             {/* Card 1: Checklist Box */}
             <div className="bg-white/95 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-amber-300 shadow-md space-y-3 text-left">
               <h4 className="font-display font-black text-sm text-slate-900 border-b border-slate-100 pb-2 flex items-center justify-between">
@@ -506,7 +505,7 @@ export default function QuizResultPage() {
                 <Target className="w-4 h-4 text-rose-500" />
                 <span>Next Goals</span>
               </h4>
-              
+
               <div className="space-y-2">
                 <button
                   onClick={handleRetry}
@@ -710,21 +709,18 @@ function QuestionReviewCard({
   originalQuestionText?: string
 }) {
   return (
-    <div className={`p-4 rounded-2xl border flex flex-col gap-2 text-xs font-bold bg-white shadow-2xs transition-all hover:border-indigo-300 ${
-      qr.isCorrect ? 'border-emerald-200 bg-emerald-50/20' : 'border-rose-200 bg-rose-50/20'
-    }`}>
+    <div className={`p-4 rounded-2xl border flex flex-col gap-2 text-xs font-bold bg-white shadow-2xs transition-all hover:border-indigo-300 ${qr.isCorrect ? 'border-emerald-200 bg-emerald-50/20' : 'border-rose-200 bg-rose-50/20'
+      }`}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black text-white ${
-            qr.isCorrect ? 'bg-emerald-500' : 'bg-rose-500'
-          }`}>
+          <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black text-white ${qr.isCorrect ? 'bg-emerald-500' : 'bg-rose-500'
+            }`}>
             {qr.isCorrect ? '✓' : '✕'}
           </span>
           <span className="font-extrabold text-slate-800 text-sm">Q{index + 1}</span>
         </div>
-        <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-lg ${
-          qr.isCorrect ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
-        }`}>
+        <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-lg ${qr.isCorrect ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+          }`}>
           {qr.isCorrect ? 'Correct' : 'Incorrect'}
         </span>
       </div>

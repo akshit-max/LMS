@@ -323,74 +323,80 @@ function ChapterRowCard({ chapter, index }: { chapter: ChapterWithStatus; index:
   const isLocked = chapter.status === 'locked'
 
   return (
-    <RouterLink
-      to={isLocked ? '#' : `/chapters/${chapter.id}`}
-      className={`block p-4 rounded-xl border transition-all group ${
-        isCompleted
-          ? 'bg-emerald-50/60 border-emerald-200 hover:border-emerald-300'
-          : isAvailable
-          ? 'bg-white border-slate-200 hover:border-amber-300 hover:shadow-sm'
-          : 'bg-slate-50 border-slate-200 opacity-60 cursor-not-allowed'
-      }`}
+    <motion.div
+      whileHover={isLocked ? {} : { scale: 1.015, y: -2 }}
+      whileTap={isLocked ? {} : { scale: 0.985 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 22 }}
     >
-      <div className="flex items-center justify-between gap-4">
-        
-        {/* Left Status Icon & Info */}
-        <div className="flex items-center gap-3.5 min-w-0">
-          <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 font-black text-xs ${
-            isCompleted 
-              ? 'bg-emerald-500 text-white' 
-              : isAvailable 
-              ? 'bg-amber-500 text-white' 
-              : 'bg-slate-300 text-white'
-          }`}>
-            {isCompleted ? (
-              <Check className="w-4 h-4 stroke-[3]" />
-            ) : isAvailable ? (
-              <span>{index + 1}</span>
-            ) : (
-              <Lock className="w-3.5 h-3.5" />
-            )}
-          </div>
-
-          <div className="min-w-0">
-            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
-              Chapter {chapter.order}
-            </span>
-            <h3 className="font-display font-black text-sm text-slate-900 group-hover:text-[#5865f2] transition-colors truncate">
-              {chapter.title}
-            </h3>
-            <p className="text-xs text-slate-500 font-medium truncate mt-0.5">
-              {chapter.description || 'Learn key concepts and practice skills.'}
-            </p>
-          </div>
-        </div>
-
-        {/* Right Stars & Chevron */}
-        <div className="flex items-center gap-3 shrink-0">
-          {isCompleted && (
-            <div className="hidden sm:flex flex-col items-end">
-              <div className="flex items-center gap-0.5">
-                {[1, 2, 3].map(s => (
-                  <Star
-                    key={s}
-                    className={`w-3.5 h-3.5 ${s <= chapter.bestStars ? 'fill-amber-400 text-amber-500' : 'text-slate-300'}`}
-                  />
-                ))}
-              </div>
-              <span className="text-[10px] font-bold text-slate-400 mt-0.5">
-                Best: {chapter.bestScore}%
-              </span>
+      <RouterLink
+        to={isLocked ? '#' : `/chapters/${chapter.id}`}
+        className={`block p-4 rounded-2xl border transition-all duration-200 group ${
+          isCompleted
+            ? 'bg-emerald-50/70 border-emerald-200 hover:border-emerald-300 shadow-2xs hover:shadow-md'
+            : isAvailable
+            ? 'bg-white border-slate-200/90 hover:border-amber-400 shadow-2xs hover:shadow-md'
+            : 'bg-slate-50/90 border-slate-200 opacity-60 cursor-not-allowed'
+        }`}
+      >
+        <div className="flex items-center justify-between gap-4">
+          
+          {/* Left Status Icon & Info */}
+          <div className="flex items-center gap-3.5 min-w-0">
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 font-black text-xs transition-transform group-hover:scale-105 ${
+              isCompleted 
+                ? 'bg-emerald-500 text-white shadow-xs' 
+                : isAvailable 
+                ? 'bg-amber-500 text-white shadow-xs' 
+                : 'bg-slate-300 text-white'
+            }`}>
+              {isCompleted ? (
+                <Check className="w-4 h-4 stroke-[3]" />
+              ) : isAvailable ? (
+                <span>{index + 1}</span>
+              ) : (
+                <Lock className="w-3.5 h-3.5" />
+              )}
             </div>
-          )}
 
-          <div className="w-7 h-7 rounded-lg bg-slate-100 group-hover:bg-[#5865f2] group-hover:text-white text-slate-400 flex items-center justify-center transition-colors">
-            <ChevronRight className="w-4 h-4" />
+            <div className="min-w-0">
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
+                Chapter {chapter.order}
+              </span>
+              <h3 className="font-display font-black text-sm text-slate-900 group-hover:text-[#5865f2] transition-colors truncate">
+                {chapter.title}
+              </h3>
+              <p className="text-xs text-slate-500 font-medium truncate mt-0.5">
+                {chapter.description || 'Learn key concepts and practice skills.'}
+              </p>
+            </div>
           </div>
-        </div>
 
-      </div>
-    </RouterLink>
+          {/* Right Stars & Chevron */}
+          <div className="flex items-center gap-3 shrink-0">
+            {isCompleted && (
+              <div className="hidden sm:flex flex-col items-end">
+                <div className="flex items-center gap-0.5">
+                  {[1, 2, 3].map(s => (
+                    <Star
+                      key={s}
+                      className={`w-3.5 h-3.5 ${s <= chapter.bestStars ? 'fill-amber-400 text-amber-500' : 'text-slate-300'}`}
+                    />
+                  ))}
+                </div>
+                <span className="text-[10px] font-bold text-slate-400 mt-0.5">
+                  Best: {chapter.bestScore}%
+                </span>
+              </div>
+            )}
+
+            <div className="w-7 h-7 rounded-lg bg-slate-100 group-hover:bg-[#5865f2] group-hover:text-white text-slate-400 flex items-center justify-center transition-colors">
+              <ChevronRight className="w-4 h-4" />
+            </div>
+          </div>
+
+        </div>
+      </RouterLink>
+    </motion.div>
   )
 }
 

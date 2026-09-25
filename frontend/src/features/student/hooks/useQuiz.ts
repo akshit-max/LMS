@@ -54,3 +54,34 @@ export function useAttemptResult(attemptId: string | null) {
     enabled: !!attemptId && !!uid,
   })
 }
+
+// POST /api/v1/attempts/:attemptId/check-answer
+// Per-question instant feedback. Returns {correct, explanation, combo}.
+// correctAnswer is NEVER returned — backend only reveals correct/wrong.
+export interface CheckAnswerResponse {
+  correct: boolean
+  explanation?: string
+  combo: number
+}
+
+export function useCheckAnswer() {
+  return useMutation({
+    mutationFn: async ({
+      attemptId,
+      questionId,
+      selectedAnswer,
+      timeTakenMs,
+    }: {
+      attemptId: string
+      questionId: string
+      selectedAnswer: string
+      timeTakenMs: number
+    }) => {
+      const res = await api.post<CheckAnswerResponse>(
+        `/attempts/${attemptId}/check-answer`,
+        { questionId, selectedAnswer, timeTakenMs }
+      )
+      return res.data
+    },
+  })
+}

@@ -85,3 +85,19 @@ type AttemptResult struct {
 	MaxCombo     int      `json:"maxCombo"`     // highest consecutive correct answers this attempt
 }
 
+// CheckAnswerRequest is sent by the frontend for per-question instant feedback.
+// Only the student's selected answer is trusted — correctness is computed server-side.
+type CheckAnswerRequest struct {
+	QuestionID     string `json:"questionId"`
+	SelectedAnswer string `json:"selectedAnswer"`
+	TimeTakenMs    int64  `json:"timeTakenMs"`
+}
+
+// CheckAnswerResponse is returned immediately after checking a single answer.
+// It tells the frontend correct/wrong and optionally shows the explanation.
+// The correctAnswer field is intentionally OMITTED — students do not learn the answer until submission.
+type CheckAnswerResponse struct {
+	Correct     bool   `json:"correct"`
+	Explanation string `json:"explanation,omitempty"` // shown during feedback phase only
+	Combo       int    `json:"combo"`               // current consecutive-correct count for this attempt
+}

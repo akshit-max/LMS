@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -35,6 +36,41 @@ func (h *QuizHandler) StartAttempt(w http.ResponseWriter, r *http.Request) {
 
 	respondJSON(w, http.StatusCreated, resp)
 }
+
+// CheckAnswer handles POST /api/v1/attempts/{attemptID}/check-answer
+// Validates a single question answer server-side and persists it to the in-progress attempt.
+// Provides instant correct/wrong feedback without exposing the correct answer.
+// Idempotent: if the same question is answered twice, the original result is returned (HTTP 200).
+func (h *QuizHandler) CheckAnswer(w http.ResponseWriter, r *http.Request) {
+	uid := middleware.GetUID(r)
+	attemptID := chi.URLParam(r, "attemptID")
+
+	var req domain.CheckAnswerRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if req.QuestionID == "" || req.SelectedAnswer == "" {
+		respondError(w, http.StatusBadRequest, "questionId and selectedAnswer are required")
+		return
+	}
+
+	result, err := h.quizService.CheckAnswer(r.Context(), uid, attemptID, req)
+	if err != nil {
+		switch {
+		case errors.Is(err, repository.ErrAttemptNotFound):
+			respondError(w, http.StatusNotFound, "attempt not found")
+		case errors.Is(err, repository.ErrAttemptNotInProgress):
+			respondError(w, http.StatusConflict, "attempt is already completed")
+		default:
+			respondError(w, http.StatusInternalServerError, err.Error())
+		}
+		return
+	}
+
+	respondJSON(w, http.StatusOK, result)
+}
+
 
 // SubmitAttempt handles POST /api/v1/attempts/{attemptID}/submit
 // Accepts only questionId + selectedAnswer per question.

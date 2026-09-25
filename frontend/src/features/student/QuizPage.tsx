@@ -10,46 +10,67 @@ import {
   LogOut, 
   BarChart2, 
   Trophy, 
-  Sparkles,
-  ArrowRight,
   Check,
-  Clock
+  X,
 } from 'lucide-react'
 import {
   useQuizSessionStore,
   useCurrentQuestion,
   useQuizProgress,
 } from '@/store/quizSessionStore'
-import { useSubmitAttempt } from './hooks/useQuiz'
+import { useSubmitAttempt, useCheckAnswer } from './hooks/useQuiz'
 import { useProgress } from './hooks/useCurriculum'
+import { useUserLeaderboardRank, getTop3RankBadge } from './hooks/useBadges'
 import { useAuthStore } from '@/store/authStore'
 import { auth } from '@/lib/firebase'
 import type { QuestionPublic } from '@/types'
 
 const TIMER_SECONDS = 30
 
+// ── Feedback message banks ──────────────────────────────────────────────────
+const CORRECT_MESSAGES = [
+  "Spot on, Champion! 🎯",
+  "Boom! Pure brilliance! ⚡",
+  "Unstoppable power! 🔥",
+  "Flawless execution! ⭐",
+  "Grammar masterclass in action! 👑",
+  "You're dominating this quiz! 🚀",
+  "Nailed it like a pro! ✨",
+]
+const WRONG_MESSAGES = [
+  "Shake it off! Champions don't back down — claim your revenge on the next question! 👑",
+  "A minor setback for a major comeback. Show this quiz who's boss! 🔥",
+  "Not quite, but greatness takes practice. Time to hit back twice as hard! 💪",
+  "Is that all this question had? Refocus and reclaim your streak now! ⚡",
+  "Legends aren't defined by one miss — turn up the heat! 🚀",
+  "Close call! You've got the talent, now bring the thunder! 🌩️",
+]
+function pickRandom(arr: string[]) { return arr[Math.floor(Math.random() * arr.length)] }
+
+type FeedbackState = { correct: boolean; explanation?: string; combo: number; message: string } | null
+
 export default function QuizPage() {
   const { quizId } = useParams<{ quizId: string }>()
   const navigate = useNavigate()
 
-  const { attemptId, answers, status, recordAnswer, nextQuestion, setResult, setStatus } =
+  const { attemptId, status, nextQuestion, setResult, setStatus, recordAnswer } =
     useQuizSessionStore()
   const currentQuestion = useCurrentQuestion()
   const progress = useQuizProgress()
   const { mutate: submitAttempt } = useSubmitAttempt()
+  const { mutate: checkAnswer, isPending: isChecking } = useCheckAnswer()
 
   const [selected, setSelected] = useState<string | null>(null)
   const [timerPct, setTimerPct] = useState(100)
   const [timeLeft, setTimeLeft] = useState(TIMER_SECONDS)
   const [timerFrozen, setTimerFrozen] = useState(false)
+  const [feedback, setFeedback] = useState<FeedbackState>(null)
   const [reorderItems, setReorderItems] = useState<string[]>([])
-  // Match the Following state: { leftSelected, pairs: {left→right} }
   const [matchLeft, setMatchLeft] = useState<string | null>(null)
   const [matchPairs, setMatchPairs] = useState<Record<string, string>>({})
-  // Visual streak — counts consecutive non-blank answers (display only, not authoritative)
-  const [visualStreak, setVisualStreak] = useState(0)
   const questionStartTime = useRef(Date.now())
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Guard: if session not started, redirect to intro
   useEffect(() => {
@@ -62,6 +83,7 @@ export default function QuizPage() {
   useEffect(() => {
     if (!currentQuestion) return
     setSelected(null)
+    setFeedback(null)
     setTimerFrozen(false)
     setTimerPct(100)
     setTimeLeft(TIMER_SECONDS)
@@ -70,10 +92,17 @@ export default function QuizPage() {
     if (currentQuestion.type === 'reorder') {
       setReorderItems([...currentQuestion.options].sort(() => Math.random() - 0.5))
     }
-    // Reset match state
     setMatchLeft(null)
     setMatchPairs({})
   }, [currentQuestion?.id])
+
+  // Cleanup feedback timer on unmount
+  useEffect(() => {
+    return () => {
+      if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current)
+      if (timerRef.current) clearInterval(timerRef.current)
+    }
+  }, [])
 
   // Countdown timer
   useEffect(() => {
@@ -83,69 +112,71 @@ export default function QuizPage() {
       setTimeLeft(t => {
         const next = t - 1
         setTimerPct((next / TIMER_SECONDS) * 100)
-        if (next <= 0) {
-          // Time's up — auto-submit current selection or blank
-          // We must use a ref or state wrapper, but since this runs in setInterval, 
-          // we use the dispatcher pattern or just rely on useEffect's scope?
-          // Actually, we can just call confirmAnswer from inside the setTimeLeft using the stale closure?
-          // Better: just trigger the timeout state.
-          return 0
-        }
-        return next
+        return next <= 0 ? 0 : next
       })
     }, 1000)
 
     return () => { if (timerRef.current) clearInterval(timerRef.current) }
   }, [timerFrozen, currentQuestion?.id])
 
-  const handleOptionClick = useCallback((answer: string) => {
-    if (timerFrozen) return
-    setSelected(answer)
-  }, [timerFrozen])
-
-  const confirmAnswer = useCallback((answerToRecord: string) => {
-    if (timerFrozen) return
-    if (timerRef.current) clearInterval(timerRef.current)
-    setTimerFrozen(true)
-
-    // Update visual streak
-    if (answerToRecord === '') {
-      setVisualStreak(0)
-    } else {
-      setVisualStreak(s => s + 1)
-    }
-
-    const timeTakenMs = Date.now() - questionStartTime.current
-    recordAnswer({
-      questionId: currentQuestion!.id,
-      selectedAnswer: answerToRecord,
-      timeTakenMs,
-    })
-  }, [timerFrozen, currentQuestion, recordAnswer])
-  const handleNext = useCallback(() => {
-    if (!timerFrozen) {
-      confirmAnswer(selected ?? '')
-    }
-    
-    if (progress.current >= progress.total - 1) {
+  // Auto-advance after feedback period
+  const advanceAfterFeedback = useCallback(() => {
+    const isLast = useQuizSessionStore.getState().currentIndex
+      >= useQuizSessionStore.getState().questions.length - 1
+    if (isLast) {
       handleSubmitAll()
     } else {
       nextQuestion()
     }
-  }, [timerFrozen, selected, confirmAnswer, progress, nextQuestion])
+  }, [nextQuestion])
 
-  // Watch for timeout hitting 0 to trigger submission
+  // Core: called when student selects ANY answer (option click, reorder confirm, match complete)
+  const handleAnswerSelected = useCallback((answer: string) => {
+    if (timerFrozen || isChecking || !currentQuestion || !attemptId) return
+    if (timerRef.current) clearInterval(timerRef.current)
+    setTimerFrozen(true)
+    setSelected(answer)
+
+    // ✅ Persist the answer immediately so handleSubmitAll always has a full answers array
+    recordAnswer({ questionId: currentQuestion.id, selectedAnswer: answer })
+
+    const timeTakenMs = Date.now() - questionStartTime.current
+
+    checkAnswer(
+      { attemptId, questionId: currentQuestion.id, selectedAnswer: answer, timeTakenMs },
+      {
+        onSuccess: (result) => {
+          const message = result.correct
+            ? pickRandom(CORRECT_MESSAGES)
+            : pickRandom(WRONG_MESSAGES)
+          setFeedback({ ...result, message })
+
+          // Auto-advance after feedback duration
+          feedbackTimerRef.current = setTimeout(() => {
+            setFeedback(null)
+            advanceAfterFeedback()
+          }, 1050)
+        },
+        onError: () => {
+          // Network error — still record locally and advance
+          setTimerFrozen(false)
+          alert('Connection error. Please check your internet and try again.')
+        },
+      }
+    )
+  }, [timerFrozen, isChecking, currentQuestion, attemptId, checkAnswer, advanceAfterFeedback, recordAnswer])
+
+  // Timer expiry: treat blank as wrong
   useEffect(() => {
     if (timeLeft === 0 && !timerFrozen) {
-       handleNext()
+      handleAnswerSelected('')
     }
-  }, [timeLeft, timerFrozen, handleNext])
+  }, [timeLeft, timerFrozen, handleAnswerSelected])
 
   const handleSubmitAll = () => {
     if (!attemptId) return
     setStatus('submitting')
-
-    // Read the latest state from the store directly to avoid closure staleness
+    // Read latest answers directly from store to avoid stale closure
     const latestAnswers = useQuizSessionStore.getState().answers
 
     submitAttempt(
@@ -163,15 +194,16 @@ export default function QuizPage() {
     )
   }
 
+
   const { data: userCurriculumProgress } = useProgress()
   const { profile } = useAuthStore()
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
 
-  const fullName = profile?.displayName ?? 'AKSHIT'
+  const fullName = profile?.displayName ?? 'Student'
   const firstName = fullName.split(' ')[0].toUpperCase()
-  const totalXP = userCurriculumProgress?.totalXP ?? 315
-  const streak = userCurriculumProgress?.currentStreak ?? 1
-  const stars = userCurriculumProgress?.totalStars ?? 20
+  const totalXP = userCurriculumProgress?.totalXP ?? 0
+  const streak = userCurriculumProgress?.currentStreak ?? 0
+  const stars = userCurriculumProgress?.totalStars ?? 0
 
   if (!currentQuestion || status === 'submitting') {
     return (
@@ -225,7 +257,134 @@ export default function QuizPage() {
 
   return (
     <div className="min-h-screen w-full relative flex flex-col font-sans selection:bg-[#5865f2] selection:text-white bg-[#0e1626] overflow-x-hidden">
-      
+
+      {/* ── FULL-SCREEN FEEDBACK OVERLAY ─────────────────────────────────── */}
+      <AnimatePresence>
+        {feedback && (
+          <motion.div
+            key="feedback-overlay"
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            transition={{ duration: 0.18 }}
+            className={`fixed inset-0 z-50 flex flex-col items-center justify-center p-4 gap-6 select-none ${
+              feedback.correct
+                ? 'bg-gradient-to-b from-emerald-500 via-emerald-600 to-green-800 text-white backdrop-blur-md'
+                : 'bg-gradient-to-b from-rose-600 via-red-600 to-rose-950 text-white backdrop-blur-md'
+            }`}
+          >
+            {/* Ambient Background Pulse Glow */}
+            <div className={`absolute inset-0 pointer-events-none opacity-40 animate-pulse ${
+              feedback.correct ? 'bg-[radial-gradient(circle_at_center,rgba(52,211,153,0.5)_0%,transparent_70%)]' : 'bg-[radial-gradient(circle_at_center,rgba(244,63,94,0.6)_0%,transparent_70%)]'
+            }`} />
+
+            {/* Big Energetic Icon */}
+            <motion.div
+              initial={{ scale: 0.3, rotate: feedback.correct ? -15 : 15, opacity: 0 }}
+              animate={{ scale: 1, rotate: 0, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 450, damping: 18 }}
+              className="relative z-10"
+            >
+              <div className={`w-32 h-32 rounded-full flex items-center justify-center shadow-2xl ${
+                feedback.correct
+                  ? 'bg-white/25 border-4 border-white/70 shadow-[0_0_40px_rgba(255,255,255,0.4)] ring-4 ring-emerald-300/40'
+                  : 'bg-white/20 border-4 border-white/60 shadow-[0_0_40px_rgba(244,63,94,0.6)] ring-4 ring-rose-300/40 animate-pulse'
+              }`}>
+                {feedback.correct
+                  ? <Check className="w-20 h-20 text-white stroke-[3.5] drop-shadow-md" />
+                  : <X className="w-20 h-20 text-white stroke-[3.5] drop-shadow-md" />}
+              </div>
+              {/* Mascot badge */}
+              <span className="absolute -top-4 -right-4 text-6xl filter drop-shadow-xl select-none animate-bounce">
+                {feedback.correct ? '🦊' : '🔥'}
+              </span>
+            </motion.div>
+
+            {/* Status label & Header */}
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.08 }}
+              className="text-center relative z-10 space-y-1"
+            >
+              <p className="font-display font-black text-4xl sm:text-5xl tracking-tight drop-shadow-lg uppercase">
+                {feedback.correct ? 'Spot On, Champion! 🎯' : 'Challenge Accepted! ⚔️'}
+              </p>
+            </motion.div>
+
+            {/* Healthy Ego Trigger Statement Card for Wrong Answer */}
+            {!feedback.correct && (
+              <motion.div
+                initial={{ y: 20, opacity: 0, scale: 0.95 }}
+                animate={{ y: 0, opacity: 1, scale: 1 }}
+                transition={{ delay: 0.12, type: 'spring', stiffness: 300 }}
+                className="max-w-md w-full bg-white/20 backdrop-blur-xl border-2 border-white/40 shadow-2xl rounded-3xl p-5 text-center relative z-10 space-y-2"
+              >
+                <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-amber-400 text-amber-950 font-black text-xs uppercase tracking-wider shadow-md">
+                  <Flame className="w-4 h-4 fill-amber-950 text-amber-950 animate-bounce" /> HEALTHY EGO BOOST
+                </div>
+                <p className="font-display font-black text-base sm:text-lg leading-relaxed text-white drop-shadow-sm">
+                  "{feedback.message}"
+                </p>
+              </motion.div>
+            )}
+
+            {/* Correct Message Sub-text */}
+            {feedback.correct && (
+              <motion.p
+                initial={{ y: 15, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.12 }}
+                className="text-white/95 font-extrabold text-xl relative z-10 drop-shadow-sm"
+              >
+                {feedback.message}
+              </motion.p>
+            )}
+
+            {/* Combo badge */}
+            {feedback.correct && feedback.combo > 1 && (
+              <motion.div
+                initial={{ scale: 0, rotate: -10 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ delay: 0.18, type: 'spring' }}
+                className="flex items-center gap-2 px-6 py-2.5 bg-amber-400 text-amber-950 border-2 border-white rounded-full shadow-xl relative z-10"
+              >
+                <Flame className="w-5 h-5 fill-amber-950 text-amber-950" />
+                <span className="font-display font-black text-lg uppercase tracking-wide">{feedback.combo}x COMBO STREAK!</span>
+              </motion.div>
+            )}
+
+            {/* Explanation */}
+            {feedback.explanation && (
+              <motion.div
+                initial={{ y: 10, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.22 }}
+                className="max-w-md w-full bg-white/15 backdrop-blur-md rounded-2xl px-5 py-3.5 border border-white/30 text-center relative z-10"
+              >
+                <p className="text-white/95 text-xs sm:text-sm font-bold leading-snug">💡 {feedback.explanation}</p>
+              </motion.div>
+            )}
+
+            {/* Progress dots */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.25 }}
+              className="flex items-center gap-2 relative z-10"
+            >
+              {Array.from({ length: progress.total }).map((_, i) => (
+                <div key={i} className={`rounded-full transition-all ${
+                  i < progress.index + 1
+                    ? 'w-4 h-4 bg-white shadow-md ring-2 ring-white/40'
+                    : 'w-3 h-3 bg-white/30'
+                }`} />
+              ))}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* ── 1. BACKGROUND ARTWORK ─────────────────────────────────────────── */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat z-0"
@@ -441,17 +600,17 @@ export default function QuizPage() {
               {currentQuestion.type === 'reorder' ? (
                 <ReorderQuestion
                   items={reorderItems}
-                  onConfirm={handleOptionClick}
-                  disabled={timerFrozen}
+                  onConfirm={handleAnswerSelected}
+                  disabled={timerFrozen || isChecking}
                 />
               ) : currentQuestion.type === 'match' ? (
                 <MatchQuestion
                   options={currentQuestion.options}
                   leftSelected={matchLeft}
                   pairs={matchPairs}
-                  disabled={timerFrozen}
+                  disabled={timerFrozen || isChecking}
                   onLeftClick={(item) => {
-                    if (timerFrozen) return
+                    if (timerFrozen || isChecking) return
                     if (matchPairs[item]) {
                       setMatchPairs(p => { const n = { ...p }; delete n[item]; return n })
                     } else {
@@ -459,46 +618,77 @@ export default function QuizPage() {
                     }
                   }}
                   onRightClick={(rightItem) => {
-                    if (timerFrozen || !matchLeft) return
+                    if (timerFrozen || isChecking || !matchLeft) return
                     const newPairs = { ...matchPairs, [matchLeft]: rightItem }
                     setMatchPairs(newPairs)
                     setMatchLeft(null)
-                    const leftCount = Math.floor(currentQuestion.options.length / 2)
+                    const leftCount = Math.floor((currentQuestion.options ?? []).length / 2)
                     if (Object.keys(newPairs).length === leftCount) {
                       const canonical = Object.keys(newPairs).sort().map(l => `${l}→${newPairs[l]}`).join('|')
-                      handleOptionClick(canonical)
+                      handleAnswerSelected(canonical)
                     }
                   }}
                 />
-              ) : (
-                currentQuestion.options.map((option, i) => (
+              ) : currentQuestion.type === 'fill_blank' && (!currentQuestion.options || currentQuestion.options.length === 0) ? (
+                // Fill-blank with no stored options → text input
+                <FillBlankQuestion
+                  disabled={timerFrozen || isChecking}
+                  onConfirm={handleAnswerSelected}
+                />
+              ) : currentQuestion.type === 'true_false' && (!currentQuestion.options || currentQuestion.options.length === 0) ? (
+                // True/False with no options in DB → always force the two buttons
+                ['True', 'False'].map((option, i) => (
                   <AnswerTile
                     key={option}
                     option={option}
                     index={i}
                     selected={selected === option}
-                    disabled={timerFrozen}
-                    onClick={() => handleOptionClick(option)}
+                    disabled={timerFrozen || isChecking}
+                    feedback={feedback && selected === option ? (feedback.correct ? 'correct' : 'wrong') : null}
+                    onClick={() => handleAnswerSelected(option)}
+                  />
+                ))
+              ) : currentQuestion.type === 'odd_one_out' ? (
+                // Odd One Out — 2-column grid using OddOneTile
+                <div className="grid grid-cols-2 gap-3">
+                  {(currentQuestion.options ?? []).map((option, i) => (
+                    <OddOneTile
+                      key={option}
+                      option={option}
+                      index={i}
+                      selected={selected === option}
+                      disabled={timerFrozen || isChecking}
+                      onClick={() => handleAnswerSelected(option)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                // MCQ, true_false (with options), fill_blank (with options), drag_drop — standard AnswerTile list
+                (currentQuestion.options ?? []).map((option, i) => (
+                  <AnswerTile
+                    key={option}
+                    option={option}
+                    index={i}
+                    selected={selected === option}
+                    disabled={timerFrozen || isChecking}
+                    feedback={feedback && selected === option ? (feedback.correct ? 'correct' : 'wrong') : null}
+                    onClick={() => handleAnswerSelected(option)}
                   />
                 ))
               )}
             </div>
 
-            {/* CTA Submit / Next Button */}
-            <div className="pt-2">
-              <button
-                onClick={handleNext}
-                disabled={selected === null || timerFrozen}
-                className={`w-full py-4 px-6 rounded-2xl font-display font-black text-lg tracking-wide transition-all flex items-center justify-center gap-2.5 active:scale-[0.98] ${
-                  selected !== null && !timerFrozen
-                    ? 'bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-orange-500 text-white shadow-[0_10px_25px_-5px_rgba(249,115,22,0.45)] hover:shadow-[0_15px_30px_-5px_rgba(249,115,22,0.6)] cursor-pointer'
-                    : 'bg-orange-500/20 text-orange-300/80 border border-orange-400/30 cursor-not-allowed'
-                }`}
-              >
-                <span>{isLast ? 'Submit Quiz' : 'Submit Answer'}</span>
-                <ArrowRight className="w-5 h-5" />
-              </button>
-            </div>
+            {/* Checking indicator — shows while waiting for backend response */}
+            {isChecking && (
+              <div className="pt-1 flex items-center justify-center gap-2 text-slate-400 text-xs font-bold">
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 0.6, repeat: Infinity, ease: 'linear' }}
+                  className="w-4 h-4 border-2 border-orange-400 border-t-transparent rounded-full"
+                />
+                Checking...
+              </div>
+            )}
 
           </motion.div>
         </AnimatePresence>
@@ -518,7 +708,6 @@ export default function QuizPage() {
               Every correct answer brings you closer to your goals! ”
             </p>
           </div>
-          {/* Mountain Graphic Accent */}
           <div className="text-2xl shrink-0 opacity-80">
             🏔️
           </div>
@@ -535,33 +724,54 @@ export default function QuizPage() {
 const TILE_LETTERS = ['A', 'B', 'C', 'D', 'E']
 
 function AnswerTile({
-  option, index, selected, disabled, onClick,
+  option, index, selected, disabled, feedback, onClick,
 }: {
-  option: string, index: number, selected: boolean, disabled: boolean, onClick: () => void,
+  option: string
+  index: number
+  selected: boolean
+  disabled: boolean
+  feedback: 'correct' | 'wrong' | null
+  onClick: () => void
 }) {
   const letter = TILE_LETTERS[index] ?? String(index + 1)
+
+  const tileClass = feedback === 'correct'
+    ? 'border-emerald-500 bg-emerald-50 text-slate-900 ring-2 ring-emerald-300/60 shadow-sm'
+    : feedback === 'wrong'
+    ? 'border-rose-500 bg-rose-50 text-slate-900 ring-2 ring-rose-300/60 shadow-sm'
+    : selected
+    ? 'border-[#2563eb] bg-[#eff6ff] text-slate-900 shadow-xs ring-2 ring-[#2563eb]/20'
+    : 'border-slate-200/90 bg-white text-slate-800 hover:bg-orange-50/80 hover:border-orange-300'
+
+  const badgeClass = feedback === 'correct'
+    ? 'bg-emerald-500 text-white'
+    : feedback === 'wrong'
+    ? 'bg-rose-500 text-white'
+    : selected
+    ? 'bg-[#2563eb] text-white'
+    : 'bg-slate-100 text-slate-700 group-hover:bg-orange-500 group-hover:text-white'
 
   return (
     <button
       onClick={onClick}
       disabled={disabled}
       className={`w-full px-4 py-3.5 sm:py-4 rounded-2xl border-2 flex items-center gap-3.5 text-left font-bold text-base transition-all duration-150 cursor-pointer group
-        ${selected 
-          ? 'border-[#2563eb] bg-[#eff6ff] text-slate-900 shadow-xs ring-2 ring-[#2563eb]/20' 
-          : 'border-slate-200/90 bg-white text-slate-800 hover:bg-orange-50/80 hover:border-orange-300'
-        }
-        ${disabled && !selected ? 'opacity-40' : ''}`}
+        ${tileClass}
+        ${disabled && !selected && !feedback ? 'opacity-40' : ''}`}
     >
-      <div className={`w-9 h-9 rounded-full font-black text-sm flex items-center justify-center shrink-0 transition-colors shadow-2xs
-        ${selected ? 'bg-[#2563eb] text-white' : 'bg-slate-100 text-slate-700 group-hover:bg-orange-500 group-hover:text-white'}`}>
+      <div className={`w-9 h-9 rounded-full font-black text-sm flex items-center justify-center shrink-0 transition-colors shadow-2xs ${badgeClass}`}>
         {letter}
       </div>
       <span className="flex-1 font-display font-extrabold text-sm sm:text-base text-slate-900 leading-snug">
         {option}
       </span>
-      {selected && (
-        <div className="w-5 h-5 rounded-full bg-[#2563eb] text-white flex items-center justify-center text-xs shrink-0 shadow-2xs">
-          <Check className="w-3.5 h-3.5 stroke-[3]" />
+      {(selected || feedback) && (
+        <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs shrink-0 shadow-2xs ${
+          feedback === 'correct' ? 'bg-emerald-500 text-white'
+          : feedback === 'wrong' ? 'bg-rose-500 text-white'
+          : 'bg-[#2563eb] text-white'
+        }`}>
+          {feedback === 'correct' ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : feedback === 'wrong' ? <X className="w-3.5 h-3.5 stroke-[3]" /> : <Check className="w-3.5 h-3.5 stroke-[3]" />}
         </div>
       )}
     </button>
@@ -740,6 +950,43 @@ function MatchQuestion({
           Now tap a match for "{leftSelected}"
         </p>
       )}
+    </div>
+  )
+}
+
+// ─── Fill in the Blank Question (No Options) ────────────────────────────────
+
+function FillBlankQuestion({
+  disabled,
+  onConfirm
+}: {
+  disabled: boolean
+  onConfirm: (val: string) => void
+}) {
+  const [val, setVal] = useState('')
+
+  return (
+    <div className="space-y-4 pt-2">
+      <input 
+        type="text" 
+        value={val} 
+        onChange={e => setVal(e.target.value)}
+        disabled={disabled}
+        className="w-full border-2 border-slate-200 rounded-2xl px-5 py-4 text-center font-display font-bold text-lg text-slate-800 focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-100 transition-all"
+        placeholder="Type your answer here..."
+        onKeyDown={e => {
+          if (e.key === 'Enter' && val.trim()) {
+            onConfirm(val.trim())
+          }
+        }}
+      />
+      <button 
+        disabled={disabled || !val.trim()}
+        onClick={() => onConfirm(val.trim())}
+        className="btn-game w-full mt-2 disabled:opacity-50"
+      >
+        Submit Answer
+      </button>
     </div>
   )
 }

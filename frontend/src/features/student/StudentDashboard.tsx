@@ -33,6 +33,7 @@ import api from '@/lib/api'
 import { auth } from '@/lib/firebase'
 import { useAuthStore } from '@/store/authStore'
 import { useUnits, useProgress, type UnitWithStatus } from './hooks/useCurriculum'
+import { useUserLeaderboardRank, getTop3RankBadge } from './hooks/useBadges'
 import {
   useMyUnlockRequests,
   useNotifications,
@@ -75,6 +76,8 @@ export default function StudentDashboard() {
   const { data: unreadCount = 0 } = useUnreadCount()
   const { mutate: markRead } = useMarkNotificationRead()
   const { data: leaderboardData } = useLeaderboardData()
+  const { data: userRank } = useUserLeaderboardRank()
+  const top3Badge = getTop3RankBadge(userRank)
 
   const [notifOpen, setNotifOpen] = useState(false)
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
@@ -212,20 +215,29 @@ export default function StudentDashboard() {
             <div className="relative border-l border-slate-200 pl-3">
               <button
                 onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-                className="flex items-center gap-2.5 py-1 px-2 rounded-2xl hover:bg-slate-100/80 transition-all text-left group border border-transparent hover:border-slate-200 focus:outline-none"
+                className="flex items-center gap-2.5 py-1 px-2 rounded-2xl hover:bg-slate-100/80 transition-all text-left group border border-transparent hover:border-slate-200 focus:outline-none cursor-pointer"
               >
                 <div className="relative">
-                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#5865f2] via-indigo-500 to-purple-600 text-white font-black text-sm flex items-center justify-center shadow-md shadow-indigo-500/20 border-2 border-white uppercase group-hover:scale-105 transition-transform">
+                  <div className={`w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#5865f2] via-indigo-500 to-purple-600 text-white font-black text-sm flex items-center justify-center shadow-md border-2 border-white uppercase group-hover:scale-105 transition-transform ${top3Badge ? top3Badge.haloClass : ''}`}>
                     {firstName.charAt(0)}
                   </div>
-                  <div className="w-3 h-3 rounded-full bg-emerald-500 border-2 border-white absolute -bottom-0.5 -right-0.5 shadow-xs" />
+                  {top3Badge ? (
+                    <span className="absolute -top-1.5 -right-1.5 text-sm filter drop-shadow-xs select-none">
+                      {top3Badge.icon}
+                    </span>
+                  ) : (
+                    <div className="w-3 h-3 rounded-full bg-emerald-500 border-2 border-white absolute -bottom-0.5 -right-0.5 shadow-xs" />
+                  )}
                 </div>
                 <div className="hidden sm:block leading-tight">
                   <span className="text-xs font-black text-slate-900 flex items-center gap-1.5">
                     {firstName}
+                    {top3Badge && <span className="text-xs">{top3Badge.icon}</span>}
                     <ChevronDown className={`w-3.5 h-3.5 text-slate-400 group-hover:text-slate-700 transition-transform duration-200 ${profileMenuOpen ? 'rotate-180 text-[#5865f2]' : ''}`} />
                   </span>
-                  <span className="text-[10px] font-extrabold text-[#5865f2] block">{rankTitle}</span>
+                  <span className="text-[10px] font-extrabold text-[#5865f2] block">
+                    {top3Badge ? top3Badge.shortLabel : rankTitle}
+                  </span>
                 </div>
               </button>
 
@@ -243,15 +255,24 @@ export default function StudentDashboard() {
                     >
                       {/* User Info Header */}
                       <div className="p-3.5 bg-gradient-to-br from-indigo-50/80 via-purple-50/50 to-amber-50/50 rounded-2xl mb-1.5 border border-indigo-100/80 flex items-center gap-3">
-                        <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-orange-500 via-amber-500 to-[#5865f2] text-white font-black text-base flex items-center justify-center shadow-md shrink-0 uppercase border-2 border-white">
+                        <div className={`w-11 h-11 rounded-2xl bg-gradient-to-tr from-orange-500 via-amber-500 to-[#5865f2] text-white font-black text-base flex items-center justify-center shadow-md shrink-0 uppercase border-2 border-white ${top3Badge ? top3Badge.haloClass : ''}`}>
                           {firstName.charAt(0)}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="font-black text-xs text-slate-900 truncate">{fullName}</p>
+                          <p className="font-black text-xs text-slate-900 truncate flex items-center gap-1">
+                            {fullName}
+                            {top3Badge && <span>{top3Badge.icon}</span>}
+                          </p>
                           <p className="text-[10px] text-slate-500 font-semibold truncate mt-0.5">{profile?.email || 'Student Account'}</p>
-                          <div className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#5865f2] text-white text-[9px] font-black shadow-xs">
-                            ⭐ {rankTitle}
-                          </div>
+                          {top3Badge ? (
+                            <div className={`mt-1.5 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] ${top3Badge.badgeBg}`}>
+                              <span>{top3Badge.shortLabel}</span>
+                            </div>
+                          ) : (
+                            <div className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#5865f2] text-white text-[9px] font-black shadow-xs">
+                              ⭐ {rankTitle}
+                            </div>
+                          )}
                         </div>
                       </div>
                       

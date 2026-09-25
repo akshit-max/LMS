@@ -46,7 +46,9 @@ type ChapterWithStatus struct {
 	BestStars int    `json:"bestStars"`
 }
 
-// GetUnitsForStudent returns all active units with this student's status for each.
+// GetUnitsForStudent returns all published units with this student's status for each.
+// Units with status="draft" or status="archived" are hidden from students.
+// Existing seeded units without a status field are treated as published (backward compat).
 func (s *CurriculumService) GetUnitsForStudent(ctx context.Context, userID string) ([]*UnitWithStatus, error) {
 	units, err := s.unitRepo.GetAll(ctx)
 	if err != nil {
@@ -67,6 +69,12 @@ func (s *CurriculumService) GetUnitsForStudent(ctx context.Context, userID strin
 
 	result := make([]*UnitWithStatus, 0, len(units))
 	for _, u := range units {
+		// Hide draft/archived units from students
+		// Backward compat: if status is empty (seeded units), treat as published
+		if u.Status != "" && u.Status != domain.UnitStatusPublished {
+			continue
+		}
+
 		chapters, err := s.chapterRepo.GetByUnit(ctx, u.ID)
 		if err != nil {
 			continue

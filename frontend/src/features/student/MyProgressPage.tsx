@@ -17,7 +17,7 @@ import {
 } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useProgress, useUnits } from './hooks/useCurriculum'
-import { useMyBadges } from './hooks/useBadges'
+import { useMyBadges, useUserLeaderboardRank, getTop3RankBadge } from './hooks/useBadges'
 import { useAuthStore } from '@/store/authStore'
 import { auth } from '@/lib/firebase'
 
@@ -46,6 +46,8 @@ export default function MyProgressPage() {
   const { data: progress, isLoading: progressLoading } = useProgress()
   const { data: units } = useUnits()
   const { data: badges } = useMyBadges()
+  const { data: userRank } = useUserLeaderboardRank()
+  const top3Badge = getTop3RankBadge(userRank)
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
 
   const fullName = profile?.displayName ?? 'AKSHIT'
@@ -266,6 +268,30 @@ export default function MyProgressPage() {
                 </div>
               ) : progress ? (
                 <>
+                  {/* Top 3 Leaderboard Podium Badge Card */}
+                  {top3Badge && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className={`p-6 rounded-3xl border-2 ${top3Badge.borderClass} ${top3Badge.badgeBg} shadow-2xl relative overflow-hidden flex items-center gap-5`}
+                    >
+                      <div className="w-16 h-16 rounded-2xl bg-white/30 backdrop-blur-md flex items-center justify-center text-4xl shadow-md border-2 border-white shrink-0 animate-bounce">
+                        {top3Badge.icon}
+                      </div>
+                      <div className="space-y-1">
+                        <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-white/30 text-white font-black text-[10px] uppercase tracking-wider shadow-2xs">
+                          {top3Badge.shortLabel}
+                        </div>
+                        <h2 className="font-display font-black text-xl sm:text-2xl text-white tracking-tight drop-shadow-sm">
+                          {top3Badge.title}
+                        </h2>
+                        <p className="text-white/95 text-xs sm:text-sm font-extrabold leading-snug drop-shadow-2xs">
+                          {top3Badge.bannerMessage}
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
+
                   {/* Current Rank Card */}
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}

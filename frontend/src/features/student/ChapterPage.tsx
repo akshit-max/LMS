@@ -288,83 +288,91 @@ export default function ChapterPage() {
               <div className="space-y-3">
                 
                 {/* 1. Video Lesson */}
-                <RouterLink 
-                  to={`/chapters/${chapter.id}/video`}
-                  className="flex items-center justify-between p-4 rounded-2xl bg-purple-50/50 border border-purple-200/80 hover:border-purple-400 hover:bg-purple-50 transition-all group"
-                >
-                  <div className="flex items-center gap-3.5">
-                    <div className="w-10 h-10 rounded-xl bg-purple-500 text-white flex items-center justify-center shrink-0 font-bold shadow-xs group-hover:scale-105 transition-transform">
-                      <Video className="w-5 h-5" />
+                <motion.div whileHover={{ scale: 1.015, x: 2 }} whileTap={{ scale: 0.985 }} transition={{ type: 'spring', stiffness: 400, damping: 22 }}>
+                  <RouterLink 
+                    to={`/chapters/${chapter.id}/video`}
+                    className="flex items-center justify-between p-4 rounded-2xl bg-purple-50/50 border border-purple-200/80 hover:border-purple-400 hover:bg-purple-50 transition-all group shadow-2xs hover:shadow-md"
+                  >
+                    <div className="flex items-center gap-3.5">
+                      <div className="w-10 h-10 rounded-xl bg-purple-500 text-white flex items-center justify-center shrink-0 font-bold shadow-xs group-hover:scale-105 transition-transform">
+                        <Video className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="font-display font-black text-sm text-slate-900 group-hover:text-purple-700 transition-colors">
+                          Video Lesson
+                        </h4>
+                        <p className="text-xs text-slate-500 font-medium">
+                          Watch the lesson and learn the key concepts.
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="font-display font-black text-sm text-slate-900 group-hover:text-purple-700 transition-colors">
-                        Video Lesson
-                      </h4>
-                      <p className="text-xs text-slate-500 font-medium">
-                        Watch the lesson and learn the key concepts.
-                      </p>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-purple-400 group-hover:text-purple-600 group-hover:translate-x-0.5 transition-all" />
-                </RouterLink>
+                    <ChevronRight className="w-5 h-5 text-purple-400 group-hover:text-purple-600 group-hover:translate-x-0.5 transition-all" />
+                  </RouterLink>
+                </motion.div>
 
                 {/* 2. Grammar Notes */}
-                <RouterLink 
-                  to={`/chapters/${chapter.id}/grammar`}
-                  className="flex items-center justify-between p-4 rounded-2xl bg-amber-50/50 border border-amber-200/80 hover:border-amber-400 hover:bg-amber-50 transition-all group"
-                >
-                  <div className="flex items-center gap-3.5">
-                    <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 font-bold shadow-xs group-hover:scale-105 transition-transform">
-                      <FileText className="w-5 h-5" />
+                <motion.div whileHover={{ scale: 1.015, x: 2 }} whileTap={{ scale: 0.985 }} transition={{ type: 'spring', stiffness: 400, damping: 22 }}>
+                  <RouterLink 
+                    to={`/chapters/${chapter.id}/grammar`}
+                    className="flex items-center justify-between p-4 rounded-2xl bg-amber-50/50 border border-amber-200/80 hover:border-amber-400 hover:bg-amber-50 transition-all group shadow-2xs hover:shadow-md"
+                  >
+                    <div className="flex items-center gap-3.5">
+                      <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 font-bold shadow-xs group-hover:scale-105 transition-transform">
+                        <FileText className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="font-display font-black text-sm text-slate-900 group-hover:text-amber-800 transition-colors">
+                          Grammar Notes
+                        </h4>
+                        <p className="text-xs text-slate-500 font-medium">
+                          Read the summary and examples.
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="font-display font-black text-sm text-slate-900 group-hover:text-amber-800 transition-colors">
-                        Grammar Notes
-                      </h4>
-                      <p className="text-xs text-slate-500 font-medium">
-                        Read the summary and examples.
-                      </p>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-amber-400 group-hover:text-amber-600 group-hover:translate-x-0.5 transition-all" />
-                </RouterLink>
+                    <ChevronRight className="w-5 h-5 text-amber-400 group-hover:text-amber-600 group-hover:translate-x-0.5 transition-all" />
+                  </RouterLink>
+                </motion.div>
 
                 {/* 3. Interactive Lesson */}
-                <RouterLink 
-                  to={`/chapters/${chapter.id}/interactive`}
-                  className="flex items-center justify-between p-4 rounded-2xl bg-emerald-50/50 border border-emerald-200/80 hover:border-emerald-400 hover:bg-emerald-50 transition-all group"
-                >
-                  <div className="flex items-center gap-3.5">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0 font-bold shadow-xs group-hover:scale-105 transition-transform">
-                      <Gamepad2 className="w-5 h-5" />
+                <motion.div whileHover={{ scale: 1.015, x: 2 }} whileTap={{ scale: 0.985 }} transition={{ type: 'spring', stiffness: 400, damping: 22 }}>
+                  <RouterLink 
+                    to={`/chapters/${chapter.id}/interactive`}
+                    className="flex items-center justify-between p-4 rounded-2xl bg-emerald-50/50 border border-emerald-200/80 hover:border-emerald-400 hover:bg-emerald-50 transition-all group shadow-2xs hover:shadow-md"
+                  >
+                    <div className="flex items-center gap-3.5">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0 font-bold shadow-xs group-hover:scale-105 transition-transform">
+                        <Gamepad2 className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="font-display font-black text-sm text-slate-900 group-hover:text-emerald-800 transition-colors">
+                          Interactive Lesson
+                        </h4>
+                        <p className="text-xs text-slate-500 font-medium">
+                          Coming soon in the next update.
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="font-display font-black text-sm text-slate-900 group-hover:text-emerald-800 transition-colors">
-                        Interactive Lesson
-                      </h4>
-                      <p className="text-xs text-slate-500 font-medium">
-                        Coming soon in the next update.
-                      </p>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-emerald-400 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all" />
-                </RouterLink>
+                    <ChevronRight className="w-5 h-5 text-emerald-400 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all" />
+                  </RouterLink>
+                </motion.div>
 
               </div>
 
               {/* Big Orange CTA Quiz Button */}
               <div className="space-y-2 pt-2">
-                <RouterLink
-                  to={isLocked ? '#' : `/quiz/${chapter.quizId}`}
-                  className={`w-full py-4 px-6 rounded-2xl font-display font-black text-lg tracking-wide flex items-center justify-center gap-2.5 transition-all shadow-md active:translate-y-0.5 ${
-                    isLocked
-                      ? 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300'
-                      : 'bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 text-white shadow-orange-500/30'
-                  }`}
-                >
-                  <Play className="w-5 h-5 fill-current" />
-                  <span>Start Quiz &gt;</span>
-                </RouterLink>
+                <motion.div whileHover={isLocked ? {} : { scale: 1.02 }} whileTap={isLocked ? {} : { scale: 0.98 }}>
+                  <RouterLink
+                    to={isLocked ? '#' : `/quiz/${chapter.quizId}`}
+                    className={`w-full py-4 px-6 rounded-2xl font-display font-black text-lg tracking-wide flex items-center justify-center gap-2.5 transition-all shadow-md ${
+                      isLocked
+                        ? 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300'
+                        : 'bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 text-white shadow-orange-500/30 cursor-pointer'
+                    }`}
+                  >
+                    <Play className="w-5 h-5 fill-current" />
+                    <span>Start Quiz &gt;</span>
+                  </RouterLink>
+                </motion.div>
                 <p className="text-[11px] font-extrabold text-slate-400 text-center">
                   Score &ge;90% to unlock the next chapter.
                 </p>

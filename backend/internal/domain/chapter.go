@@ -7,12 +7,15 @@ type Chapter struct {
 	ID             string    `firestore:"id" json:"id"`
 	UnitID         string    `firestore:"unitId" json:"unitId"`
 	Title          string    `firestore:"title" json:"title"`
+	Description    string    `firestore:"description" json:"description"`
 	Order          int       `firestore:"order" json:"order"`
 	LessonVideoURL string    `firestore:"lessonVideoUrl" json:"lessonVideoUrl"`
 	PDFURL         string    `firestore:"pdfUrl" json:"pdfUrl"`
 	QuizID         string    `firestore:"quizId" json:"quizId"`
 	IsActive       bool      `firestore:"isActive" json:"isActive"`
+	Status         string    `firestore:"status" json:"status"` // draft | published | archived
 	CreatedAt      time.Time `firestore:"createdAt" json:"createdAt"`
+	CreatedBy      string    `firestore:"createdBy" json:"createdBy"`
 }
 
 // ChapterStatus records a student's progress for a specific chapter.

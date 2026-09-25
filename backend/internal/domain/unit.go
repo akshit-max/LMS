@@ -2,6 +2,13 @@ package domain
 
 import "time"
 
+// Unit status values
+const (
+	UnitStatusDraft     = "draft"
+	UnitStatusPublished = "published"
+	UnitStatusArchived  = "archived"
+)
+
 // Unit is a top-level curriculum grouping (e.g. "The Simple Present Tense").
 // A Unit contains multiple Chapters. Progression unlocks happen at the Unit level.
 type Unit struct {
@@ -11,7 +18,9 @@ type Unit struct {
 	Order        int       `firestore:"order" json:"order"`
 	ChapterCount int       `firestore:"chapterCount" json:"chapterCount"`
 	IsActive     bool      `firestore:"isActive" json:"isActive"`
+	Status       string    `firestore:"status" json:"status"` // draft | published | archived
 	CreatedAt    time.Time `firestore:"createdAt" json:"createdAt"`
+	CreatedBy    string    `firestore:"createdBy" json:"createdBy"`
 }
 
 // UnitStatus represents a student's access state for a Unit.

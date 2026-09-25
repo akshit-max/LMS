@@ -126,6 +126,101 @@ func (s *QuizService) StartAttempt(ctx context.Context, userID, quizID string) (
 	}, nil
 }
 
+// ─── CheckAnswer ──────────────────────────────────────────────────────────────
+
+// CheckAnswer validates a single answer for an in-progress attempt and persists it.
+// Security guarantees:
+//   - Only the authenticated student can check their own attempt (UserID verified)
+//   - The question must belong to this attempt's questionOrder
+//   - The same question cannot be checked twice (idempotency via Firestore transaction)
+//   - correctAnswer is NEVER included in the response
+//   - The final SubmitAttempt reuses the already-stored answers for authoritative grading
+func (s *QuizService) CheckAnswer(ctx context.Context, userID, attemptID string, req domain.CheckAnswerRequest) (*domain.CheckAnswerResponse, error) {
+	// 1. Fetch attempt and verify ownership
+	attempt, err := s.attemptRepo.GetByID(ctx, attemptID)
+	if err != nil {
+		return nil, err
+	}
+	if attempt.UserID != userID {
+		return nil, errors.New("attempt does not belong to this user")
+	}
+	if attempt.Status != domain.AttemptStatusInProgress && attempt.Status != "practice_in_progress" {
+		return nil, errors.New("attempt is not in progress")
+	}
+
+	// 2. Fetch the question from Firestore (server-authoritative correctAnswer)
+	question, err := s.quizRepo.GetQuestionByID(ctx, req.QuestionID)
+	if err != nil || question == nil {
+		return nil, fmt.Errorf("question not found: %s", req.QuestionID)
+	}
+
+	// 3. Grade the answer server-side — never trusts the client
+	isCorrect := gradeAnswer(question, req.SelectedAnswer)
+
+	// 4. Persist the answer atomically (idempotency + ownership guards in repo)
+	storedAnswer := domain.StoredAnswer{
+		QuestionID:     req.QuestionID,
+		SelectedAnswer: req.SelectedAnswer,
+		IsCorrect:      isCorrect,
+		TimeTakenMs:    req.TimeTakenMs,
+	}
+	updatedAttempt, err := s.attemptRepo.RecordCheckedAnswer(ctx, attemptID, storedAnswer)
+	if err != nil {
+		if errors.Is(err, repository.ErrQuestionAlreadyAnswered) {
+			// Idempotent — find the existing stored answer and return its result
+			for _, a := range attempt.Answers {
+				if a.QuestionID == req.QuestionID {
+					combo := countCombo(attempt.Answers, attempt.QuestionOrder)
+					return &domain.CheckAnswerResponse{
+						Correct: a.IsCorrect,
+						Combo:   combo,
+					}, nil
+				}
+			}
+		}
+		return nil, fmt.Errorf("failed to record answer: %w", err)
+	}
+
+	// 5. Compute running combo from the updated answers list
+	combo := countCombo(updatedAttempt.Answers, updatedAttempt.QuestionOrder)
+
+	// 6. Return feedback — explanation shown only if correct (not exposing the answer key for wrong ones)
+	explanation := ""
+	if isCorrect {
+		explanation = question.Explanation
+	}
+
+	return &domain.CheckAnswerResponse{
+		Correct:     isCorrect,
+		Explanation: explanation,
+		Combo:       combo,
+	}, nil
+}
+
+// countCombo calculates the current consecutive-correct streak from stored answers,
+// following the question order as the authoritative sequence.
+func countCombo(answers []domain.StoredAnswer, questionOrder []string) int {
+	// Build a map of answers for fast lookup
+	answerMap := make(map[string]bool, len(answers))
+	for _, a := range answers {
+		answerMap[a.QuestionID] = a.IsCorrect
+	}
+	// Walk the question order in reverse to find trailing consecutive correct answers
+	combo := 0
+	for i := len(questionOrder) - 1; i >= 0; i-- {
+		correct, answered := answerMap[questionOrder[i]]
+		if !answered {
+			break // haven't answered this question yet
+		}
+		if !correct {
+			break // streak broken
+		}
+		combo++
+	}
+	return combo
+}
+
+
 // ─── Submit ───────────────────────────────────────────────────────────────────
 
 // SubmitAttempt grades the submitted answers and stores the completed attempt.
@@ -209,7 +304,16 @@ func (s *QuizService) SubmitAttempt(
 		})
 	}
 
-	// 4. Calculate score, stars, XP, passed
+	// 4. Fetch the quiz to get the dynamic passing score
+	quiz, err := s.quizRepo.GetByID(ctx, attempt.QuizID)
+	if err != nil || quiz == nil {
+		return nil, fmt.Errorf("quiz not found")
+	}
+	passingScore := quiz.PassingScore
+	if passingScore <= 0 {
+		passingScore = 90
+	}
+
 	total := len(attempt.QuestionOrder)
 	score := 0
 	if total > 0 {
@@ -217,7 +321,7 @@ func (s *QuizService) SubmitAttempt(
 	}
 	stars := calculateStars(score)
 	xp := calculateXP(stars)
-	passed := score >= 90
+	passed := score >= passingScore
 
 	// 5. Check personal best
 	best, _ := s.attemptRepo.GetBestAttempt(ctx, userID, attempt.QuizID)

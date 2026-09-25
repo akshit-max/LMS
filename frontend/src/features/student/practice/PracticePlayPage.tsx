@@ -8,15 +8,36 @@ import {
   usePracticeProgress,
 } from '@/store/practiceSessionStore'
 import { useMutation } from '@tanstack/react-query'
+import { useCheckAnswer } from '../hooks/useQuiz'
 import api from '@/lib/api'
 import type { PracticeResult } from '@/store/practiceSessionStore'
 import type { QuestionPublic } from '@/types'
+
+// Practice uses the same check-answer endpoint but practice attempts are fully isolated.
+// No XP/progression/ranking effects — the practice submit endpoint handles final results.
+const PRACTICE_CORRECT = [
+  "Spot on, Champion! 🎯",
+  "Boom! Pure brilliance! ⚡",
+  "Unstoppable practice power! 🔥",
+  "Flawless grammar move! ⭐",
+  "You're dominating the practice arena! 🚀",
+]
+const PRACTICE_WRONG = [
+  "Shake it off! Champions don't back down — claim your revenge on the next question! 👑",
+  "A minor setback for a major comeback. Show this practice arena who's boss! 🔥",
+  "Not quite, but greatness takes practice. Time to hit back twice as hard! 💪",
+  "Is that all this question had? Refocus and dominate the next step! ⚡",
+  "Legends aren't defined by one miss — turn up the heat! 🚀",
+]
+function pickRandom(arr: string[]) { return arr[Math.floor(Math.random() * arr.length)] }
+
+type PracticeFeedback = { correct: boolean; explanation?: string; message: string } | null
 
 export default function PracticePlayPage() {
   const { quizId } = useParams<{ quizId: string }>()
   const navigate = useNavigate()
 
-  const { attemptId, status, recordAnswer, nextQuestion, setResult, setStatus } =
+  const { attemptId, status, nextQuestion, setResult, setStatus, recordAnswer } =
     usePracticeSessionStore()
   const currentQuestion = usePracticeCurrentQuestion()
   const progress = usePracticeProgress()
@@ -25,7 +46,12 @@ export default function PracticePlayPage() {
   const [matchLeft, setMatchLeft] = useState<string | null>(null)
   const [matchPairs, setMatchPairs] = useState<Record<string, string>>({})
   const [reorderItems, setReorderItems] = useState<string[]>([])
+  const [feedback, setFeedback] = useState<PracticeFeedback>(null)
+  const [locked, setLocked] = useState(false)
   const questionStartTime = useRef(Date.now())
+  const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const { mutate: checkAnswer, isPending: isChecking } = useCheckAnswer()
 
   // Guard: if session not started, redirect to intro
   useEffect(() => {
@@ -38,11 +64,17 @@ export default function PracticePlayPage() {
   useEffect(() => {
     if (!currentQuestion) return
     setSelected(null)
+    setFeedback(null)
+    setLocked(false)
     setMatchLeft(null)
     setMatchPairs({})
     setReorderItems(currentQuestion.options ? [...currentQuestion.options] : [])
     questionStartTime.current = Date.now()
   }, [currentQuestion?.id])
+
+  useEffect(() => {
+    return () => { if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current) }
+  }, [])
 
   // Submit mutation — practice endpoint only
   const { mutate: submitPractice } = useMutation({
@@ -59,23 +91,43 @@ export default function PracticePlayPage() {
     },
   })
 
-  const handleOptionClick = useCallback((answer: string) => {
+  const handleAnswerSelected = useCallback((answer: string) => {
+    if (locked || isChecking || !currentQuestion || !attemptId) return
+    setLocked(true)
     setSelected(answer)
-  }, [])
 
-  const handleConfirmAndNext = useCallback(() => {
-    if (selected === null) return
+    // ✅ Persist answer immediately — same as QuizPage — so submitPractice always
+    // has a full answers array even if check-answer network call fails.
+    recordAnswer({ questionId: currentQuestion.id, selectedAnswer: answer })
+
     const timeTakenMs = Date.now() - questionStartTime.current
-    recordAnswer({ questionId: currentQuestion!.id, selectedAnswer: selected, timeTakenMs })
 
-    const isLast = progress.current >= progress.total - 1
-    if (isLast) {
-      setStatus('submitting')
-      submitPractice()
-    } else {
-      nextQuestion()
-    }
-  }, [selected, currentQuestion, progress, recordAnswer, submitPractice, nextQuestion, setStatus])
+    checkAnswer(
+      { attemptId, questionId: currentQuestion.id, selectedAnswer: answer, timeTakenMs },
+      {
+        onSuccess: (result) => {
+          const message = result.correct ? pickRandom(PRACTICE_CORRECT) : pickRandom(PRACTICE_WRONG)
+          setFeedback({ ...result, message })
+
+          feedbackTimerRef.current = setTimeout(() => {
+            setFeedback(null)
+            const isLast = usePracticeSessionStore.getState().currentIndex
+              >= usePracticeSessionStore.getState().questions.length - 1
+            if (isLast) {
+              setStatus('submitting')
+              submitPractice()
+            } else {
+              nextQuestion()
+            }
+          }, 950)
+        },
+        onError: () => {
+          setLocked(false)
+          alert('Connection error. Please try again.')
+        },
+      }
+    )
+  }, [locked, isChecking, currentQuestion, attemptId, checkAnswer, nextQuestion, setStatus, submitPractice, recordAnswer])
 
   if (!currentQuestion || status === 'submitting') {
     return (
@@ -119,7 +171,104 @@ export default function PracticePlayPage() {
 
   return (
     <div className="min-h-screen w-full relative flex flex-col font-sans selection:bg-[#5865f2] selection:text-white bg-[#0e1626] overflow-x-hidden">
-      
+
+      {/* ── FEEDBACK OVERLAY ────────────────────────────────────────── */}
+      <AnimatePresence>
+        {feedback && (
+          <motion.div
+            key="practice-feedback"
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            transition={{ duration: 0.18 }}
+            className={`fixed inset-0 z-50 flex flex-col items-center justify-center p-4 gap-6 select-none ${
+              feedback.correct
+                ? 'bg-gradient-to-b from-emerald-500 via-emerald-600 to-green-800 text-white backdrop-blur-md'
+                : 'bg-gradient-to-b from-rose-600 via-red-600 to-rose-950 text-white backdrop-blur-md'
+            }`}
+          >
+            {/* Ambient Pulse Glow */}
+            <div className={`absolute inset-0 pointer-events-none opacity-40 animate-pulse ${
+              feedback.correct ? 'bg-[radial-gradient(circle_at_center,rgba(52,211,153,0.5)_0%,transparent_70%)]' : 'bg-[radial-gradient(circle_at_center,rgba(244,63,94,0.6)_0%,transparent_70%)]'
+            }`} />
+
+            {/* Icon */}
+            <motion.div
+              initial={{ scale: 0.3, rotate: feedback.correct ? -15 : 15, opacity: 0 }}
+              animate={{ scale: 1, rotate: 0, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 450, damping: 18 }}
+              className="relative z-10"
+            >
+              <div className={`w-32 h-32 rounded-full flex items-center justify-center shadow-2xl ${
+                feedback.correct
+                  ? 'bg-white/25 border-4 border-white/70 shadow-[0_0_40px_rgba(255,255,255,0.4)] ring-4 ring-emerald-300/40'
+                  : 'bg-white/20 border-4 border-white/60 shadow-[0_0_40px_rgba(244,63,94,0.6)] ring-4 ring-rose-300/40 animate-pulse'
+              }`}>
+                {feedback.correct
+                  ? <Check className="w-20 h-20 text-white stroke-[3.5] drop-shadow-md" />
+                  : <X className="w-20 h-20 text-white stroke-[3.5] drop-shadow-md" />}
+              </div>
+              <span className="absolute -top-4 -right-4 text-6xl filter drop-shadow-xl select-none animate-bounce">
+                {feedback.correct ? '🦊' : '🔥'}
+              </span>
+            </motion.div>
+
+            {/* Status Header */}
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.08 }}
+              className="text-center relative z-10 space-y-1"
+            >
+              <p className="font-display font-black text-4xl sm:text-5xl tracking-tight drop-shadow-lg uppercase">
+                {feedback.correct ? 'Spot On, Champion! 🎯' : 'Challenge Accepted! ⚔️'}
+              </p>
+            </motion.div>
+
+            {/* Healthy Ego Trigger Statement for Wrong Answer */}
+            {!feedback.correct && (
+              <motion.div
+                initial={{ y: 20, opacity: 0, scale: 0.95 }}
+                animate={{ y: 0, opacity: 1, scale: 1 }}
+                transition={{ delay: 0.12, type: 'spring', stiffness: 300 }}
+                className="max-w-md w-full bg-white/20 backdrop-blur-xl border-2 border-white/40 shadow-2xl rounded-3xl p-5 text-center relative z-10 space-y-2"
+              >
+                <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-amber-400 text-amber-950 font-black text-xs uppercase tracking-wider shadow-md">
+                  <Sparkles className="w-4 h-4 text-amber-950 animate-bounce" /> HEALTHY EGO BOOST
+                </div>
+                <p className="font-display font-black text-base sm:text-lg leading-relaxed text-white drop-shadow-sm">
+                  "{feedback.message}"
+                </p>
+              </motion.div>
+            )}
+
+            {/* Correct Message Sub-text */}
+            {feedback.correct && (
+              <motion.p
+                initial={{ y: 15, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.12 }}
+                className="text-white/95 font-extrabold text-xl relative z-10 drop-shadow-sm"
+              >
+                {feedback.message}
+              </motion.p>
+            )}
+
+            {/* Explanation */}
+            {feedback.explanation && (
+              <motion.div
+                initial={{ y: 10, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.22 }}
+                className="max-w-md w-full bg-white/15 backdrop-blur-md rounded-2xl px-5 py-3.5 border border-white/30 text-center relative z-10"
+              >
+                <p className="text-white/95 text-xs sm:text-sm font-bold leading-snug">💡 {feedback.explanation}</p>
+              </motion.div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* ── 1. BACKGROUND ARTWORK ─────────────────────────────────────────── */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat z-0"
@@ -295,8 +444,9 @@ export default function PracticePlayPage() {
                     matchLeft={matchLeft}
                     matchPairs={matchPairs}
                     reorderItems={reorderItems}
-                    onSelect={handleOptionClick}
+                    onSelect={handleAnswerSelected}
                     onMatchSelect={(side, val) => {
+                      if (locked || isChecking) return
                       if (side === 'left') {
                         if (matchPairs[val]) {
                           setMatchPairs(p => { const n = { ...p }; delete n[val]; return n })
@@ -310,36 +460,27 @@ export default function PracticePlayPage() {
                         const leftCount = Math.floor((currentQuestion.options?.length ?? 0) / 2)
                         if (Object.keys(newPairs).length === leftCount) {
                           const canonical = Object.keys(newPairs).sort().map(l => `${l}→${newPairs[l]}`).join('|')
-                          handleOptionClick(canonical)
+                          handleAnswerSelected(canonical)
                         }
                       }
                     }}
                     onReorderChange={(items) => setReorderItems(items)}
-                    onReorderSubmit={() => handleOptionClick(reorderItems.join('|'))}
-                    disabled={false}
+                    onReorderSubmit={() => handleAnswerSelected(reorderItems.join('|'))}
+                    disabled={locked || isChecking}
                   />
                 </div>
 
-                {/* Action CTA Button */}
-                <div className="pt-2 relative z-10">
-                  {selected === null ? (
-                    <button
-                      disabled
-                      className="w-full py-4 px-6 rounded-2xl font-display font-black text-base sm:text-lg tracking-wide bg-slate-200 text-slate-500 flex items-center justify-center gap-2 cursor-not-allowed border-2 border-slate-300"
-                    >
-                      <span>Select an answer to continue</span>
-                      <ArrowRight className="w-5 h-5 opacity-60" />
-                    </button>
-                  ) : (
-                    <button
-                      onClick={handleConfirmAndNext}
-                      className="w-full py-4 px-6 rounded-2xl font-display font-black text-base sm:text-lg tracking-wide bg-gradient-to-r from-amber-500 via-orange-500 to-purple-600 hover:brightness-110 text-white shadow-xl shadow-orange-500/25 transition-all flex items-center justify-center gap-2.5 border-b-4 border-purple-800 active:translate-y-[2px] cursor-pointer"
-                    >
-                      <span>{progress.current >= progress.total - 1 ? 'Submit Practice Session' : 'Confirm & Next'}</span>
-                      <ArrowRight className="w-5 h-5 stroke-[3]" />
-                    </button>
-                  )}
-                </div>
+                {/* Instant select — no confirm button needed. Selection auto-checks and advances. */}
+                {isChecking && (
+                  <div className="pt-2 flex items-center justify-center gap-2 text-slate-400 text-xs font-bold">
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 0.6, repeat: Infinity, ease: 'linear' }}
+                      className="w-4 h-4 border-2 border-purple-400 border-t-transparent rounded-full"
+                    />
+                    Checking...
+                  </div>
+                )}
 
               </motion.div>
             </AnimatePresence>
@@ -444,10 +585,73 @@ function PracticeQuestionRenderer({
   const { type } = question
   const letters = ['A', 'B', 'C', 'D', 'E', 'F']
 
-  if (type === 'mcq' || type === 'true_false' || type === 'fill_blank') {
+  if (type === 'fill_blank' && (!question.options || question.options.length === 0)) {
+    const [val, setVal] = useState('')
+    return (
+      <div className="space-y-4 pt-2">
+        <input 
+          type="text" 
+          value={val} 
+          onChange={e => setVal(e.target.value)}
+          disabled={disabled}
+          className="w-full border-2 border-slate-200 rounded-2xl px-5 py-4 text-center font-display font-bold text-lg text-slate-800 focus:outline-none focus:border-[#5865f2] focus:ring-4 focus:ring-indigo-100 transition-all shadow-sm"
+          placeholder="Type your answer here..."
+          onKeyDown={e => { if (e.key === 'Enter' && val.trim()) onSelect(val.trim()) }}
+        />
+        <button 
+          disabled={disabled || !val.trim()}
+          onClick={() => onSelect(val.trim())}
+          className="w-full py-4 px-6 rounded-2xl font-display font-black text-lg tracking-wide bg-[#5865f2] hover:bg-indigo-600 text-white shadow-lg shadow-indigo-500/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+        >
+          Submit Answer
+        </button>
+      </div>
+    )
+  }
+
+  if (type === 'true_false' && (!question.options || question.options.length === 0)) {
+    const opts = ['True', 'False']
     return (
       <div className="space-y-3 pt-1">
-        {question.options?.map((opt, idx) => {
+        {opts.map((opt, idx) => {
+          const isSelected = selected === opt
+          const letter = letters[idx]
+          return (
+            <button
+              key={opt}
+              disabled={disabled}
+              onClick={() => onSelect(opt)}
+              className={`w-full text-left px-4.5 py-3.5 rounded-2xl border-2 transition-all font-display font-bold text-sm sm:text-base flex items-center justify-between group cursor-pointer shadow-2xs ${
+                isSelected
+                  ? 'border-[#5865f2] bg-indigo-50/90 text-[#5865f2] shadow-md ring-2 ring-indigo-200'
+                  : 'border-slate-200/90 bg-white text-slate-800 hover:border-indigo-300 hover:bg-slate-50'
+              }`}
+            >
+              <div className="flex items-center gap-3.5">
+                <span className={`w-8 h-8 rounded-xl font-black text-xs flex items-center justify-center transition-colors shrink-0 ${
+                  isSelected ? 'bg-[#5865f2] text-white' : 'bg-slate-100 text-slate-600 group-hover:bg-indigo-100 group-hover:text-[#5865f2]'
+                }`}>
+                  {letter}
+                </span>
+                <span>{opt}</span>
+              </div>
+              {isSelected && (
+                <div className="w-6 h-6 rounded-full bg-[#5865f2] text-white flex items-center justify-center shrink-0">
+                  <Check className="w-4 h-4 stroke-[3]" />
+                </div>
+              )}
+            </button>
+          )
+        })}
+      </div>
+    )
+  }
+
+  if (type === 'mcq' || type === 'true_false' || type === 'fill_blank') {
+    const opts = question.options?.length ? question.options : []
+    return (
+      <div className="space-y-3 pt-1">
+        {opts.map((opt, idx) => {
           const isSelected = selected === opt
           const letter = letters[idx % letters.length]
 

@@ -127,3 +127,63 @@ func (r *AttemptRepository) SetPracticeCompleted(ctx context.Context, attemptID 
 	return err
 }
 
+// ErrQuestionAlreadyAnswered is returned when the same question is checked twice in one attempt.
+var ErrQuestionAlreadyAnswered = errors.New("question already answered in this attempt")
+
+// ErrAttemptNotInProgress is returned when trying to check an answer on a completed attempt.
+var ErrAttemptNotInProgress = errors.New("attempt is not in progress")
+
+// RecordCheckedAnswer atomically appends a single answer to an in-progress attempt.
+// Guards:
+//   - attempt must be in_progress (not completed)
+//   - questionID must be in the attempt's questionOrder
+//   - questionID must NOT already be in attempt.answers (idempotency: prevent double-checking)
+//
+// This is used by the check-answer endpoint to persist answers as the student progresses,
+// so that the final SubmitAttempt can use all the already-stored answers for authoritative grading.
+func (r *AttemptRepository) RecordCheckedAnswer(ctx context.Context, attemptID string, answer domain.StoredAnswer) (*domain.Attempt, error) {
+	ref := r.db.Collection(attemptsCollection).Doc(attemptID)
+
+	var updated *domain.Attempt
+	err := r.db.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
+		doc, err := tx.Get(ref)
+		if err != nil {
+			return err
+		}
+		var a domain.Attempt
+		if err := doc.DataTo(&a); err != nil {
+			return err
+		}
+
+		// Guard 1: must be in-progress
+		if a.Status != domain.AttemptStatusInProgress && a.Status != "practice_in_progress" {
+			return ErrAttemptNotInProgress
+		}
+
+		// Guard 2: question must belong to this attempt
+		inOrder := false
+		for _, qid := range a.QuestionOrder {
+			if qid == answer.QuestionID {
+				inOrder = true
+				break
+			}
+		}
+		if !inOrder {
+			return errors.New("question does not belong to this attempt")
+		}
+
+		// Guard 3: question must not already be answered (idempotency)
+		for _, existing := range a.Answers {
+			if existing.QuestionID == answer.QuestionID {
+				return ErrQuestionAlreadyAnswered
+			}
+		}
+
+		// Append the answer
+		a.Answers = append(a.Answers, answer)
+		updated = &a
+		return tx.Set(ref, a)
+	})
+	return updated, err
+}
+
